@@ -22,11 +22,12 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(goal),
+        body: JSON.stringify({ goal }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to analyze goal");
+        const errorBody = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+        throw new Error(errorBody?.message || errorBody?.error || "Gagal menganalisis tujuan");
       }
 
       const data: AnalysisResult = await response.json();
