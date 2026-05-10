@@ -57,12 +57,23 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   const [deadlineMonth, setDeadlineMonth] = useState(restoredDeadline[1] ?? "");
   const [deadlineYear, setDeadlineYear] = useState(restoredDeadline[0] ?? "");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    console.log("test")
+    if (e) e.preventDefault();
 
-    const targetGramsNum = parseFloat(targetGrams);
-    const currentGramsNum = parseFloat(currentGrams);
+    const targetGramsNum = parseFloat(targetGrams) || 0;
+    const currentGramsNum = parseFloat(currentGrams) || 0;
     const monthlyBudgetNum = parseRupiah(monthlyBudget);
+
+    if (!targetGramsNum || targetGramsNum <= 0) {
+      alert("Target emas harus lebih dari 0 gram");
+      return;
+    }
+
+    if (monthlyBudgetNum <= 0) {
+      alert("Budget bulanan harus lebih dari 0");
+      return;
+    }
 
     if (!deadlineMonth || !deadlineYear) {
       alert("Silakan pilih bulan dan tahun target");
@@ -91,8 +102,8 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
 
     try {
       localStorage.setItem("mas-emas-goal-v1", JSON.stringify(goal));
-    } catch (e) {
-      console.error("Failed to save goal to localStorage:", e);
+    } catch (err) {
+      console.error("Failed to save goal to localStorage:", err);
     }
 
     onSubmit(goal);
@@ -102,7 +113,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear + i);
 
   return (
-    <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
+    <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair)" }}>
           Rencanakan Investasi Emas Anda
@@ -147,7 +158,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
                 setTargetGrams(val);
               }}
               placeholder="100"
-              required
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
             />
@@ -167,7 +177,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
                 setCurrentGrams(val);
               }}
               placeholder="0"
-              required
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
             />
@@ -188,7 +197,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
               setMonthlyBudget(formatted);
             }}
             placeholder="5.000.000"
-            required
             className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
             disabled={isLoading}
           />
@@ -204,7 +212,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
               onChange={(e) => setDeadlineMonth(e.target.value)}
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
-              required
             >
               <option value="" className="bg-[#0A0A0F]">Pilih Bulan</option>
               {INDONESIAN_MONTHS.map((month, idx) => (
@@ -219,7 +226,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
               onChange={(e) => setDeadlineYear(e.target.value)}
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
-              required
             >
               <option value="" className="bg-[#0A0A0F]">Pilih Tahun</option>
               {yearOptions.map((year) => (
@@ -233,7 +239,8 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
       </div>
 
       <button
-        type="submit"
+        type="button"
+        onClick={() => handleSubmit()}
         disabled={isLoading}
         className="gold-focus w-full py-4 rounded-xl bg-gradient-to-r from-gold-dark via-gold to-gold-light [background-size:200%_100%] font-semibold text-[#0A0A0F] shadow-lg shadow-gold/10 transition-all hover:-translate-y-0.5 hover:shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 active:scale-[0.99]"
       >
@@ -243,6 +250,6 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
       <p className="text-xs text-gray-500 text-center">
         Rekomendasi dihasilkan oleh AI dan bersifat informatif, bukan nasihat keuangan profesional.
       </p>
-    </form>
+    </div>
   );
 }
