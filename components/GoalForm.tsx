@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { UserGoal, GoalName } from "@/lib/types";
 
 interface GoalFormProps {
@@ -31,39 +31,55 @@ function parseRupiah(formatted: string): number {
   return parseInt(formatted.replace(/\D/g, "") || "0");
 }
 
+interface FormState {
+  goalName: GoalName;
+  targetGrams: string;
+  currentGrams: string;
+  monthlyBudget: string;
+  deadlineMonth: string;
+  deadlineYear: string;
+}
+
+const INITIAL_FORM_STATE: FormState = {
+  goalName: "darurat",
+  targetGrams: "",
+  currentGrams: "",
+  monthlyBudget: "",
+  deadlineMonth: "",
+  deadlineYear: "",
+};
+
 export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
-  const restoredGoal = useState(() => {
+  const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+
+  // Restore dari localStorage setelah hydration selesai
+  useEffect(() => {
     try {
-      if (typeof window === "undefined") return null;
       const saved = localStorage.getItem("mas-emas-goal-v1");
-      if (!saved) return null;
+      if (!saved) return;
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === "object") {
-        return parsed as Partial<UserGoal>;
+        const [year = "", month = ""] = typeof parsed.deadline === "string" ? parsed.deadline.split("-") : [];
+        const restoredForm: FormState = {
+          goalName: parsed.goalName ?? INITIAL_FORM_STATE.goalName,
+          targetGrams: parsed.targetGrams ? String(parsed.targetGrams) : "",
+          currentGrams: parsed.currentGrams ? String(parsed.currentGrams) : "",
+          monthlyBudget: parsed.monthlyBudget ? formatRupiah(String(parsed.monthlyBudget)) : "",
+          deadlineMonth: month,
+          deadlineYear: year,
+        };
+        queueMicrotask(() => setForm(restoredForm));
       }
-    } catch (e) {
-      console.error("Failed to restore goal from localStorage:", e);
+    } catch (err) {
+      console.error("Failed to restore goal from localStorage:", err);
     }
-    return null;
-  })[0];
-  const restoredDeadline = restoredGoal?.deadline?.split("-") ?? [];
+  }, []);
 
-  const [goalName, setGoalName] = useState<GoalName>(restoredGoal?.goalName ?? "darurat");
-  const [targetGrams, setTargetGrams] = useState(restoredGoal?.targetGrams ? String(restoredGoal.targetGrams) : "");
-  const [currentGrams, setCurrentGrams] = useState(restoredGoal?.currentGrams ? String(restoredGoal.currentGrams) : "");
-  const [monthlyBudget, setMonthlyBudget] = useState(
-    restoredGoal?.monthlyBudget ? formatRupiah(String(restoredGoal.monthlyBudget)) : ""
-  );
-  const [deadlineMonth, setDeadlineMonth] = useState(restoredDeadline[1] ?? "");
-  const [deadlineYear, setDeadlineYear] = useState(restoredDeadline[0] ?? "");
+  const handleSubmit = () => {
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    console.log("test")
-    if (e) e.preventDefault();
-
-    const targetGramsNum = parseFloat(targetGrams) || 0;
-    const currentGramsNum = parseFloat(currentGrams) || 0;
-    const monthlyBudgetNum = parseRupiah(monthlyBudget);
+    const targetGramsNum = parseFloat(form.targetGrams) || 0;
+    const currentGramsNum = parseFloat(form.currentGrams) || 0;
+    const monthlyBudgetNum = parseRupiah(form.monthlyBudget);
 
     if (!targetGramsNum || targetGramsNum <= 0) {
       alert("Target emas harus lebih dari 0 gram");
@@ -75,14 +91,14 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
       return;
     }
 
-    if (!deadlineMonth || !deadlineYear) {
+    if (!form.deadlineMonth || !form.deadlineYear) {
       alert("Silakan pilih bulan dan tahun target");
       return;
     }
 
-    const deadline = `${deadlineYear}-${deadlineMonth.padStart(2, "0")}`;
-    const monthIndex = parseInt(deadlineMonth) - 1;
-    const deadlineLabel = `${INDONESIAN_MONTHS[monthIndex]} ${deadlineYear}`;
+    const deadline = `${form.deadlineYear}-${form.deadlineMonth.padStart(2, "0")}`;
+    const monthIndex = parseInt(form.deadlineMonth) - 1;
+    const deadlineLabel = `${INDONESIAN_MONTHS[monthIndex]} ${form.deadlineYear}`;
 
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -92,7 +108,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
     }
 
     const goal: UserGoal = {
-      goalName,
+      goalName: form.goalName,
       targetGrams: targetGramsNum,
       currentGrams: currentGramsNum,
       monthlyBudget: monthlyBudgetNum,
@@ -130,8 +146,8 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
           </label>
           <select
             id="goalName"
-            value={goalName}
-            onChange={(e) => setGoalName(e.target.value as GoalName)}
+            value={form.goalName}
+            onChange={(e) => setForm((current) => ({ ...current, goalName: e.target.value as GoalName }))}
             className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
             disabled={isLoading}
           >
@@ -152,10 +168,10 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
               id="targetGrams"
               type="text"
               inputMode="numeric"
-              value={targetGrams}
+              value={form.targetGrams}
               onChange={(e) => {
                 const val = e.target.value.replace(/[^\d.]/g, "");
-                setTargetGrams(val);
+                setForm((current) => ({ ...current, targetGrams: val }));
               }}
               placeholder="100"
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
@@ -171,10 +187,10 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
               id="currentGrams"
               type="text"
               inputMode="numeric"
-              value={currentGrams}
+              value={form.currentGrams}
               onChange={(e) => {
                 const val = e.target.value.replace(/[^\d.]/g, "");
-                setCurrentGrams(val);
+                setForm((current) => ({ ...current, currentGrams: val }));
               }}
               placeholder="0"
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
@@ -191,10 +207,10 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
             id="monthlyBudget"
             type="text"
             inputMode="numeric"
-            value={monthlyBudget}
+            value={form.monthlyBudget}
             onChange={(e) => {
               const formatted = formatRupiah(e.target.value);
-              setMonthlyBudget(formatted);
+              setForm((current) => ({ ...current, monthlyBudget: formatted }));
             }}
             placeholder="5.000.000"
             className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
@@ -208,8 +224,8 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <select
-              value={deadlineMonth}
-              onChange={(e) => setDeadlineMonth(e.target.value)}
+              value={form.deadlineMonth}
+              onChange={(e) => setForm((current) => ({ ...current, deadlineMonth: e.target.value }))}
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
             >
@@ -222,8 +238,8 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
             </select>
 
             <select
-              value={deadlineYear}
-              onChange={(e) => setDeadlineYear(e.target.value)}
+              value={form.deadlineYear}
+              onChange={(e) => setForm((current) => ({ ...current, deadlineYear: e.target.value }))}
               className="gold-focus w-full px-4 py-3 rounded-xl bg-white/5 border border-gold/20 hover:border-gold/35 focus:border-gold focus:outline-none focus:ring-2 focus:ring-gold/25"
               disabled={isLoading}
             >
@@ -240,7 +256,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
 
       <button
         type="button"
-        onClick={() => handleSubmit()}
+        onClick={handleSubmit}
         disabled={isLoading}
         className="gold-focus w-full py-4 rounded-xl bg-gradient-to-r from-gold-dark via-gold to-gold-light [background-size:200%_100%] font-semibold text-[#0A0A0F] shadow-lg shadow-gold/10 transition-all hover:-translate-y-0.5 hover:shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 active:scale-[0.99]"
       >
