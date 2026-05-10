@@ -50,6 +50,7 @@ const INITIAL_FORM_STATE: FormState = {
 };
 
 export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
+  console.log("test")
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
 
   // Restore dari localStorage setelah hydration selesai
@@ -76,7 +77,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   }, []);
 
   const handleSubmit = () => {
-
+  console.log("dd")
     const targetGramsNum = parseFloat(form.targetGrams) || 0;
     const currentGramsNum = parseFloat(form.currentGrams) || 0;
     const monthlyBudgetNum = parseRupiah(form.monthlyBudget);
@@ -132,7 +133,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
     <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair)" }}>
-          Rencanakan Investasi Emas Anda
+          Rencanakan Investasi Emas Andas
         </h2>
         <p className="text-sm text-gray-400">
           Isi detail tujuan investasi Anda untuk mendapatkan rekomendasi dari AI
