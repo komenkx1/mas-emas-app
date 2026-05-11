@@ -28,6 +28,12 @@ function getHistoricalDates(): Date[] {
   // Ambil 5 titik: sekarang, 7 hari lalu, 14 hari lalu, 21 hari lalu, 30 hari lalu
   for (const daysAgo of [0, 7, 14, 21, 30]) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo);
+    const dayOfWeek = d.getDay(); // 0=Sunday, 6=Saturday
+    if (dayOfWeek === 0) {
+      d.setDate(d.getDate() - 2); // Sunday → Friday
+    } else if (dayOfWeek === 6) {
+      d.setDate(d.getDate() - 1); // Saturday → Friday
+    }
     dates.push(d);
   }
   return dates;
@@ -66,7 +72,7 @@ async function fetchGoldAPIDate(
     if (!res.ok) return null;
     const json = (await res.json()) as Record<string, unknown>;
     const price = json.price ?? json.close ?? json.open;
-    return isValidNumber(price) ? price : null;
+    return isValidNumber(price) && price > 0 ? price : null;
   } catch {
     return null;
   }
@@ -227,6 +233,9 @@ export async function getGoldData(): Promise<GoldData> {
   }
 
   const token = process.env.GOLDAPI_KEY ?? "";
+  if (!token) {
+    console.warn("GOLDAPI_KEY not set, using mock data.");
+  }
   if (token) {
     const live = await fetchLiveGoldData(token);
     if (live) {
