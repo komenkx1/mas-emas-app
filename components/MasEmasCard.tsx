@@ -16,8 +16,8 @@ function parseAIResponse(text: string): { sections: { title: string; content: st
     for (const line of lines) {
       const trimmed = line.trim();
       
-      // Check for markdown headers or bold titles
-      if (trimmed.match(/^#{1,3}\s+(.+)/) || trimmed.match(/^\*\*(.+)\*\*:?$/)) {
+      // Check for markdown headers, bold titles, or emoji section titles.
+      if (trimmed.match(/^#{1,3}\s+(.+)/) || trimmed.match(/^\*\*(.+)\*\*:?$/) || trimmed.match(/^[📊🎯💡⚠️]\s+/)) {
         // Save previous section
         if (currentSection && currentSection.content.trim()) {
           sections.push(currentSection);
@@ -26,6 +26,7 @@ function parseAIResponse(text: string): { sections: { title: string; content: st
         // Start new section
         const title = trimmed
           .replace(/^#{1,3}\s+/, "")
+          .replace(/\*\*/g, "")
           .replace(/^\*\*/, "")
           .replace(/\*\*:?$/, "")
           .trim();
@@ -54,7 +55,8 @@ function parseAIResponse(text: string): { sections: { title: string; content: st
 }
 
 export default function MasEmasCard({ aiResponse, recommendation }: MasEmasCardProps) {
-  const parsed = parseAIResponse(aiResponse);
+  const sanitizedResponse = aiResponse.replace(/\*\*/g, "");
+  const parsed = parseAIResponse(sanitizedResponse);
   
   return (
     <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
@@ -91,8 +93,8 @@ export default function MasEmasCard({ aiResponse, recommendation }: MasEmasCardP
           <h4 className="text-sm font-semibold text-gold mb-2">💡 Rekomendasi Utama</h4>
           <p className="text-sm text-gray-300 leading-relaxed">
             {recommendation === "BUY" && "Waktu yang tepat untuk membeli emas"}
-            {recommendation === "HOLD" && "Pertahankan posisi emas Anda saat ini"}
-            {recommendation === "SELL" && "Pertimbangkan untuk menjual sebagian emas"}
+            {recommendation === "HOLD" && "Tetap beli sesuai budget rutin, jangan tambah pembelian agresif dulu"}
+            {recommendation === "SELL" && "Tunda pembelian baru dan evaluasi apakah perlu mengurangi sebagian posisi"}
           </p>
         </div>
       )}

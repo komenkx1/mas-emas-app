@@ -24,7 +24,7 @@ const INDONESIAN_MONTHS = [
 function formatRupiah(value: string): string {
   const numbers = value.replace(/\D/g, "");
   if (!numbers) return "";
-  return new Intl.NumberFormat("id-ID").format(parseInt(numbers));
+  return new Intl.NumberFormat("id-ID").format(parseInt(numbers, 10));
 }
 
 function parseRupiah(formatted: string): number {
@@ -50,7 +50,7 @@ const INITIAL_FORM_STATE: FormState = {
 };
 
 export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
-  console.log("test")
+
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
 
   // Restore dari localStorage setelah hydration selesai
@@ -77,7 +77,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   }, []);
 
   const handleSubmit = () => {
-  console.log("dd")
+
     const targetGramsNum = parseFloat(form.targetGrams) || 0;
     const currentGramsNum = parseFloat(form.currentGrams) || 0;
     const monthlyBudgetNum = parseRupiah(form.monthlyBudget);
@@ -98,7 +98,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
     }
 
     const deadline = `${form.deadlineYear}-${form.deadlineMonth.padStart(2, "0")}`;
-    const monthIndex = parseInt(form.deadlineMonth) - 1;
+    const monthIndex = parseInt(form.deadlineMonth, 10) - 1;
     const deadlineLabel = `${INDONESIAN_MONTHS[monthIndex]} ${form.deadlineYear}`;
 
     const now = new Date();
