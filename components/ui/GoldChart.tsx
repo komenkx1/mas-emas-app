@@ -2,12 +2,14 @@
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { HistoricalPrice } from "@/lib/types";
+import { usdOzToIdrGram } from "@/lib/calculations";
 
 interface GoldChartProps {
   data: HistoricalPrice[];
+  usdToIdr?: number;
 }
 
-export default function GoldChart({ data }: GoldChartProps) {
+export default function GoldChart({ data, usdToIdr = 16500 }: GoldChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center rounded-xl border border-gold/10 bg-white/5 text-gray-500 text-sm">
@@ -18,12 +20,12 @@ export default function GoldChart({ data }: GoldChartProps) {
 
   const chartData = data.map((item) => ({
     date: new Date(item.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-    price: item.price,
+    price: usdOzToIdrGram(item.price, usdToIdr),
   }));
 
   return (
-    <div className="h-[200px] w-full overflow-hidden rounded-xl">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full overflow-hidden rounded-xl" style={{ minHeight: 200, height: 200 }}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
           <LineChart data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 4 }}>
           <XAxis
             dataKey="date"
@@ -35,7 +37,7 @@ export default function GoldChart({ data }: GoldChartProps) {
             stroke="rgba(237,237,237,0.38)"
             style={{ fontSize: "12px" }}
             tickLine={false}
-            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+            tickFormatter={(value) => `${(value / 1000000).toFixed(1)}jt`}
           />
           <Tooltip
             contentStyle={{

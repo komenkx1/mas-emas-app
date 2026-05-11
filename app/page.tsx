@@ -65,7 +65,7 @@ export default function Home() {
         {result && currentGoal && (
           <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-              <GoldDashboard goldData={result.goldData} />
+              <GoldDashboard goldData={result.goldData} currentPriceIdrPerGram={result.currentPriceIdrPerGram} />
               <ProgressTracker progress={result.progress} goal={currentGoal} />
             </div>
             

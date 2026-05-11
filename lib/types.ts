@@ -48,6 +48,7 @@ export interface AnalysisResult {
   progress: GoalProgress;
   aiResponse: string;
   recommendation: "BUY" | "HOLD" | "SELL";
+  currentPriceIdrPerGram: number;
   timestamp: string;
 }
 

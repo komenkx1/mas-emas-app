@@ -1,10 +1,12 @@
 "use client";
 
 import type { GoldData } from "@/lib/types";
+import { usdOzToIdrGram } from "@/lib/calculations";
 import GoldChart from "./ui/GoldChart";
 
 interface GoldDashboardProps {
   goldData: GoldData;
+  currentPriceIdrPerGram?: number;
 }
 
 function formatRupiah(value: number): string {
@@ -27,9 +29,12 @@ function formatTimestamp(timestamp: string): string {
   }).format(date);
 }
 
-export default function GoldDashboard({ goldData }: GoldDashboardProps) {
+export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: GoldDashboardProps) {
   const changePercent = goldData.changePercent7d;
   const isPositive = changePercent >= 0;
+  const displayPrice = typeof currentPriceIdrPerGram === "number" && currentPriceIdrPerGram > 0
+    ? currentPriceIdrPerGram
+    : usdOzToIdrGram(goldData.currentPrice, 16500);
 
   return (
     <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
@@ -37,7 +42,7 @@ export default function GoldDashboard({ goldData }: GoldDashboardProps) {
         <div className="min-w-0">
           <h3 className="text-sm text-gray-400 mb-1">Harga Emas Saat Ini</h3>
           <p className="text-3xl md:text-4xl font-bold text-gold leading-tight break-words" style={{ fontFamily: "var(--font-playfair)" }}>
-            {formatRupiah(goldData.currentPrice)}
+            {formatRupiah(displayPrice)}
           </p>
           <p className="text-xs text-gray-500 mt-1">per gram</p>
         </div>

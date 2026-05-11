@@ -141,6 +141,7 @@ export async function POST(request: Request): Promise<Response> {
       progress,
       aiResponse: geminiResult.text,
       recommendation: geminiResult.recommendation,
+      currentPriceIdrPerGram,
       timestamp: new Date().toISOString(),
     };
 
