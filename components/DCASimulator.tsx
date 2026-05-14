@@ -23,6 +23,12 @@ function formatCompact(value: number): string {
   }).format(value);
 }
 
+function deterministicVolatility(month: number): number {
+  const waveA = Math.sin(month * 1.73);
+  const waveB = Math.sin(month * 0.61) * 0.5;
+  return ((waveA + waveB) / 1.5) * 0.03;
+}
+
 export default function DCASimulator({ currentPrice, monthlyBudget }: DCASimulatorProps) {
   const [amount, setAmount] = useState(monthlyBudget);
   const [months, setMonths] = useState(12);
@@ -30,15 +36,12 @@ export default function DCASimulator({ currentPrice, monthlyBudget }: DCASimulat
 
   const simulation = useMemo(() => {
     const monthlyGrowth = annualGrowth / 100 / 12;
-    const monthlyVolatility = 0.03; // ±3% random volatility
     let totalGrams = 0;
     const points: { month: number; grams: number; invested: number; price: number }[] = [];
 
     for (let month = 1; month <= months; month += 1) {
-      // Base price with trend growth
       const basePrice = currentPrice * Math.pow(1 + monthlyGrowth, month - 1);
-      // Add random volatility (±3% around trend)
-      const randomFactor = 1 + (Math.random() * 2 - 1) * monthlyVolatility;
+      const randomFactor = 1 + deterministicVolatility(month);
       const priceThisMonth = basePrice * randomFactor;
       
       totalGrams += amount / priceThisMonth;
@@ -46,7 +49,7 @@ export default function DCASimulator({ currentPrice, monthlyBudget }: DCASimulat
     }
 
     const totalInvested = amount * months;
-    // Current value based on final month's price (not projected future price)
+    // Scenario value based on the final simulated month price.
     const currentValue = totalGrams * points[points.length - 1].price;
     const gain = currentValue - totalInvested;
     const gainPercent = totalInvested > 0 ? (gain / totalInvested) * 100 : 0;
