@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import type { ApiError, AnalysisResult, UserGoal } from "@/lib/types";
-import { getGoldData } from "@/lib/goldapi";
+import { getGoldData, getDipAlert } from "@/lib/gold-data";
 import { generateAnalysis } from "@/lib/gemini";
 import {
   calculateGoalProgress,
   generateDeadlineLabel,
-  usdOzToIdrGram,
 } from "@/lib/calculations";
 
 export const runtime = "nodejs";
@@ -122,19 +121,18 @@ export async function POST(request: Request): Promise<Response> {
   const { goal } = validation;
 
   try {
-    // Ambil data emas (fallback ke mock otomatis jika API gagal)
-    const goldData = await getGoldData();
+    // Fetch gold data from self-hosted API (fallback to mock if unavailable)
+    const goldData = await getGoldData("logammulia");
 
-    // Parse USD_TO_IDR dengan fallback 16500
-    const rawUsdToIdr = Number(process.env.USD_TO_IDR);
-    const usdToIdr = isValidNumber(rawUsdToIdr) && rawUsdToIdr > 0 ? rawUsdToIdr : 16500;
-
-    const currentPriceIdrPerGram = usdOzToIdrGram(goldData.currentPrice, usdToIdr);
+    const currentPriceIdrPerGram = goldData.currentPrice;
 
     const progress = calculateGoalProgress(goal, currentPriceIdrPerGram);
 
-    // Generate analisis AI (fallback template otomatis jika Gemini gagal)
-    const geminiResult = await generateAnalysis(goal, goldData, progress, usdToIdr);
+    // Calculate dip alert
+    const dipAlert = getDipAlert(goldData);
+
+    // Generate AI analysis (fallback template if Gemini unavailable)
+    const geminiResult = await generateAnalysis(goal, goldData, progress);
 
     const result: AnalysisResult = {
       goldData,
@@ -143,6 +141,7 @@ export async function POST(request: Request): Promise<Response> {
       recommendation: geminiResult.recommendation,
       currentPriceIdrPerGram,
       timestamp: new Date().toISOString(),
+      dipAlert,
     };
 
     return NextResponse.json(result, { status: 200 });

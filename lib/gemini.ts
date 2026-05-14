@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import type { UserGoal, GoldData, GoalProgress } from "./types";
-import { usdOzToIdrGram } from "./calculations";
 
 const DEFAULT_MODEL = "gemini-2.5-flash-lite";
 
@@ -22,19 +21,37 @@ function getApiKey(): string | undefined {
 function buildSystemPrompt(
   goal: UserGoal,
   goldData: GoldData,
-  progress: GoalProgress,
-  usdToIdr: number
+  progress: GoalProgress
 ): string {
-  const priceIdrPerGram = usdOzToIdrGram(goldData.currentPrice, usdToIdr);
+  const priceIdrPerGram = goldData.currentPrice;
+  const avg7d = goldData.averageShort || priceIdrPerGram;
+  const avg30d = goldData.averageLong || priceIdrPerGram;
+  const high30d = goldData.high30d || priceIdrPerGram;
+  const low30d = goldData.low30d || priceIdrPerGram;
+  const diffFromAvg7d = avg7d > 0 ? ((priceIdrPerGram - avg7d) / avg7d) * 100 : 0;
+  const diffFromAvg30d = avg30d > 0 ? ((priceIdrPerGram - avg30d) / avg30d) * 100 : 0;
+  const diffFromHigh30d = high30d > 0 ? ((high30d - priceIdrPerGram) / high30d) * 100 : 0;
+  const idealBuyPrice = Math.round(avg7d * 0.99);
+  const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
+  const canBuyAtIdeal = goal.monthlyBudget / idealBuyPrice;
 
   return `Kamu adalah Mas Emas, penasihat investasi emas pribadi yang ramah dan berpengetahuan. Gunakan bahasa Indonesia yang santai tapi profesional.
 
-Data pasar emas:
-- Harga emas saat ini: Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram
+Data pasar emas lokal Indonesia:
+- Sumber: ${goldData.source === "logammulia" ? "Logam Mulia" : goldData.source}
+- Harga jual: Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram
+- Harga buyback: Rp${goldData.buybackPrice.toLocaleString("id-ID")}/gram
+- Spread: Rp${goldData.spread.toLocaleString("id-ID")} (${goldData.spreadPercent.toFixed(1)}%)
+- Rata-rata 7 hari: Rp${avg7d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg7d >= 0 ? "+" : ""}${diffFromAvg7d.toFixed(2)}% dari rata-rata 7 hari
+- Rata-rata 30 hari: Rp${avg30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg30d >= 0 ? "+" : ""}${diffFromAvg30d.toFixed(2)}% dari rata-rata 30 hari
+- High 30 hari: Rp${high30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari
+- Low 30 hari: Rp${low30d.toLocaleString("id-ID")}/gram
 - Perubahan 7 hari: ${goldData.changePercent7d.toFixed(2)}%
 - Perubahan 30 hari: ${goldData.changePercent30d.toFixed(2)}%
 - Tren: ${goldData.trend === "up" ? "naik" : goldData.trend === "down" ? "turun" : "menyamping"}
 - Zona harga: ${goldData.priceZone === "low" ? "rendah" : goldData.priceZone === "high" ? "tinggi" : "menengah"}
+- Harga ideal beli ringan: di bawah Rp${idealBuyPrice.toLocaleString("id-ID")}/gram
+- Harga beli agresif: di bawah Rp${strongBuyPrice.toLocaleString("id-ID")}/gram
 
 Target pengguna:
 - Tujuan: ${goal.goalName}${goal.goalName === "lainnya" ? " (lainnya)" : ""}
@@ -43,6 +60,7 @@ Target pengguna:
 - Butuh: ${progress.gramsNeeded.toFixed(2)} gram
 - Budget per bulan: Rp${goal.monthlyBudget.toLocaleString("id-ID")}
 - Bisa beli per bulan: ~${progress.budgetCanBuy.toFixed(2)} gram
+- Jika beli di harga ideal Rp${idealBuyPrice.toLocaleString("id-ID")}: ~${canBuyAtIdeal.toFixed(2)} gram/bulan, selisih ${(canBuyAtIdeal - progress.budgetCanBuy).toFixed(2)} gram dari beli sekarang
 - Deadline: ${goal.deadlineLabel || goal.deadline}
 - Sisa waktu: ${progress.monthsLeft} bulan
 - Perkiraan tercapai: ${progress.estimatedAchieveDate}
@@ -58,7 +76,7 @@ INSTRUKSI FORMAT (wajib):
 ...ulasan progres menuju target...
 
 💡 Rekomendasi
-...saran spesifik dalam format: REKOMENDASI: [BUY/HOLD/SELL] diikuti tindakan praktis untuk tabungan emas bulanan...
+...saran spesifik dalam format: REKOMENDASI: [BUY/HOLD/SELL] diikuti keputusan blunt, trigger harga, dan nominal aksi...
 
 ⚠️ Risiko & Tips
 ...peringatan dan tips praktis...
@@ -67,16 +85,24 @@ INSTRUKSI FORMAT (wajib):
    - BUY berarti boleh tambah pembelian emas bulan ini jika cashflow aman.
    - HOLD berarti tetap beli sesuai budget rutin, jangan tambah pembelian agresif dulu.
    - SELL berarti tunda pembelian baru dan evaluasi apakah perlu mengurangi sebagian posisi.
-4. Total panjang maksimal 400 kata.
-5. Jangan tampilkan harga dalam USD atau dollar. Semua nominal uang wajib pakai Rupiah.
- 6. Jangan gunakan markdown seperti #, **, atau bullet bertingkat.
- 7. Analisis Kondisi Dunia: Sertakan analisis singkat tentang faktor global yang
+4. WAJIB bersikap decisif, bukan sekadar informatif. Sertakan angka konkret berikut:
+   - Harga sekarang vs rata-rata 7 hari dalam Rupiah dan persen.
+   - Posisi harga terhadap high/low 30 hari.
+   - Jika BUY: sebutkan maksimal harga yang masih layak dibeli dan nominal tambahan yang masuk akal.
+   - Jika HOLD: sebutkan trigger jelas kapan berubah jadi BUY, misalnya "beli kalau turun ke RpX".
+   - Satu kalimat blunt: "Dengan kondisi ini, [beli sekarang/tunggu dip/tunda beli agresif] lebih masuk akal karena ...".
+5. ATURAN KERAS: Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
+6. Untuk tujuan tabungan jangka panjang, bedakan "beli rutin sesuai budget" dari "BUY agresif/tambah pembelian". HOLD tetap boleh berarti lanjut DCA rutin, tapi jangan tambah agresif.
+7. Total panjang maksimal 430 kata.
+8. Jangan tampilkan harga dalam USD atau dollar. Semua nominal uang wajib pakai Rupiah.
+ 9. Jangan gunakan markdown seperti #, **, atau bullet bertingkat.
+ 10. Analisis Kondisi Dunia: Sertakan analisis singkat tentang faktor global yang
    mempengaruhi harga emas, seperti: kebijakan suku bunga The Fed (Fed Rate),
    nilai tukar mata uang Amerika, inflasi global, dan ketegangan geopolitik.
    Hubungkan faktor-faktor ini dengan kondisi pasar emas saat ini dan
    berikan konteks bagaimana hal ini mempengaruhi strategi tabungan emas
    pengguna di Indonesia.
-8. WAJIB selesaikan semua section. Jangan berhenti di tengah kalimat.`;
+11. WAJIB selesaikan semua section. Jangan berhenti di tengah kalimat.`;
 }
 
 function isCompleteAnalysisResponse(text: string): boolean {
@@ -135,38 +161,71 @@ function parseRecommendation(text: string): Recommendation {
   return "HOLD";
 }
 
+function getDecisionMetrics(goldData: GoldData, monthlyBudget: number) {
+  const currentPrice = goldData.currentPrice;
+  const avg7d = goldData.averageShort || currentPrice;
+  const avg30d = goldData.averageLong || currentPrice;
+  const high30d = goldData.high30d || currentPrice;
+  const low30d = goldData.low30d || currentPrice;
+  const diffFromAvg7d = avg7d > 0 ? ((currentPrice - avg7d) / avg7d) * 100 : 0;
+  const diffFromAvg30d = avg30d > 0 ? ((currentPrice - avg30d) / avg30d) * 100 : 0;
+  const diffFromHigh30d = high30d > 0 ? ((high30d - currentPrice) / high30d) * 100 : 0;
+  const idealBuyPrice = Math.round(avg7d * 0.99);
+  const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
+
+  return {
+    currentPrice,
+    avg7d,
+    avg30d,
+    high30d,
+    low30d,
+    diffFromAvg7d,
+    diffFromAvg30d,
+    diffFromHigh30d,
+    idealBuyPrice,
+    strongBuyPrice,
+    gramsAtIdeal: monthlyBudget / idealBuyPrice,
+  };
+}
+
+function chooseRecommendation(goldData: GoldData, progress: GoalProgress): Recommendation {
+  const metrics = getDecisionMetrics(goldData, 1);
+
+  if (metrics.diffFromAvg7d > 5) return "HOLD";
+  if (goldData.priceZone === "low" || metrics.diffFromAvg7d < -2) return "BUY";
+  if (goldData.priceZone === "high" && goldData.changePercent7d > 3 && progress.isOnTrack) return "HOLD";
+  if (!progress.isOnTrack && metrics.diffFromAvg7d <= 2) return "BUY";
+
+  return "HOLD";
+}
+
 function buildFallbackResponse(
   goal: UserGoal,
   goldData: GoldData,
-  progress: GoalProgress,
-  usdToIdr: number
+  progress: GoalProgress
 ): GeminiResult {
-  const priceIdrPerGram = usdOzToIdrGram(goldData.currentPrice, usdToIdr);
+  const priceIdrPerGram = goldData.currentPrice;
+  const metrics = getDecisionMetrics(goldData, goal.monthlyBudget);
 
-  const rec: Recommendation =
-    goldData.priceZone === "low" && !progress.isOnTrack
-      ? "BUY"
-      : goldData.priceZone === "high" && goldData.changePercent7d > 2
-        ? "SELL"
-        : "HOLD";
+  const rec = chooseRecommendation(goldData, progress);
+  const actionText = rec === "BUY"
+    ? `Dengan kondisi ini, beli sekarang masih masuk akal selama harga tidak melewati Rp${metrics.idealBuyPrice.toLocaleString("id-ID")}/gram. Pakai budget rutin Rp${goal.monthlyBudget.toLocaleString("id-ID")}; jika cashflow aman, tambahan konservatif Rp${Math.round(goal.monthlyBudget * 0.25).toLocaleString("id-ID")} masih wajar.`
+    : `Dengan kondisi ini, tunggu dip lebih masuk akal daripada tambah pembelian agresif karena harga belum cukup murah dibanding rata-rata 7 hari. Tetap jalankan DCA rutin, lalu tambah pembelian hanya jika turun ke sekitar Rp${metrics.idealBuyPrice.toLocaleString("id-ID")}/gram atau lebih rendah.`;
 
   const text = `👋 Halo! Saya Mas Emas, siap membantu kamu mencapai target emas.
 
 📊 Analisis Pasar & Kondisi Dunia
-Harga emas saat ini sekitar Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram. Dalam 7 hari terakhir harga ${goldData.trend === "up" ? "naik" : goldData.trend === "down" ? "turun" : "cenderung flat"} sekitar ${Math.abs(goldData.changePercent7d).toFixed(2)}%. Zona harga saat ini tergolong ${goldData.priceZone === "low" ? "rendah" : goldData.priceZone === "high" ? "tinggi" : "menengah"}.
+Harga emas saat ini Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram. Rata-rata 7 hari Rp${metrics.avg7d.toLocaleString("id-ID")}/gram, jadi harga sekarang ${metrics.diffFromAvg7d >= 0 ? "lebih mahal" : "lebih murah"} ${Math.abs(metrics.diffFromAvg7d).toFixed(2)}%. Dibanding rata-rata 30 hari Rp${metrics.avg30d.toLocaleString("id-ID")}/gram, selisihnya ${metrics.diffFromAvg30d >= 0 ? "+" : ""}${metrics.diffFromAvg30d.toFixed(2)}%. High 30 hari Rp${metrics.high30d.toLocaleString("id-ID")}, low 30 hari Rp${metrics.low30d.toLocaleString("id-ID")}. Faktor global seperti arah suku bunga The Fed, inflasi, dan geopolitik tetap mendukung emas, tapi entry lokal tetap perlu lihat harga dan spread.
 
 🎯 Progres Tabungan
-Kamu menargetkan ${goal.targetGrams} gram emas dan sudah mengumpulkan ${goal.currentGrams} gram. Masih perlu ${progress.gramsNeeded.toFixed(2)} gram lagi. Dengan budget Rp${goal.monthlyBudget.toLocaleString("id-ID")}/bulan, kamu bisa membeli ~${progress.budgetCanBuy.toFixed(2)} gram per bulan. Perkiraan tercapai: ${progress.estimatedAchieveDate}.
+Kamu menargetkan ${goal.targetGrams} gram emas dan sudah mengumpulkan ${goal.currentGrams} gram. Masih perlu ${progress.gramsNeeded.toFixed(2)} gram lagi. Dengan budget Rp${goal.monthlyBudget.toLocaleString("id-ID")}/bulan, kamu bisa membeli ~${progress.budgetCanBuy.toFixed(2)} gram sekarang. Jika harga turun ke Rp${metrics.idealBuyPrice.toLocaleString("id-ID")}, budget yang sama dapat ~${metrics.gramsAtIdeal.toFixed(2)} gram. Perkiraan tercapai: ${progress.estimatedAchieveDate}.
 
 💡 Rekomendasi
 REKOMENDASI: ${rec}
-${rec === "BUY" ? "Kamu bisa mempertimbangkan menambah pembelian emas bulan ini jika cashflow aman, sambil tetap menjaga dana darurat." : "Tetap beli sesuai budget rutin yang sudah kamu siapkan. Untuk saat ini jangan tambah pembelian agresif dulu sampai harga atau cashflow lebih mendukung."}
+${actionText}
 
 ⚠️ Risiko & Tips
-- Jangan investasi lebih dari kemampuan keuanganmu.
-- Beli secara rutin untuk meratakan risiko harga.
-- Simpan emas di tempat yang aman dan terpercaya.
-- Pantau perkembangan harga secara berkala.`;
+Spread jual-buyback saat ini Rp${goldData.spread.toLocaleString("id-ID")} (${goldData.spreadPercent.toFixed(1)}%), jadi jangan terlalu sering keluar-masuk posisi. Untuk dana darurat, prioritaskan konsistensi dan likuiditas. Simpan alert di Rp${metrics.idealBuyPrice.toLocaleString("id-ID")}; kalau tersentuh, eksekusi pembelian rutin atau tambah kecil sesuai cashflow.`;
 
   return { text, recommendation: rec };
 }
@@ -174,19 +233,18 @@ ${rec === "BUY" ? "Kamu bisa mempertimbangkan menambah pembelian emas bulan ini 
 export async function generateAnalysis(
   goal: UserGoal,
   goldData: GoldData,
-  progress: GoalProgress,
-  usdToIdr: number
+  progress: GoalProgress
 ): Promise<GeminiResult> {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.warn("GEMINI_API_KEY not set, using fallback response.");
-    return buildFallbackResponse(goal, goldData, progress, usdToIdr);
+    return buildFallbackResponse(goal, goldData, progress);
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const modelName = getModelName();
 
-  const systemPrompt = buildSystemPrompt(goal, goldData, progress, usdToIdr);
+  const systemPrompt = buildSystemPrompt(goal, goldData, progress);
 
   const generationConfig = {
     temperature: 0.7,
@@ -260,6 +318,12 @@ export async function generateAnalysis(
       }
 
       const recommendation = parseRecommendation(text);
+      const metrics = getDecisionMetrics(goldData, goal.monthlyBudget);
+      if (recommendation === "BUY" && metrics.diffFromAvg7d > 5) {
+        console.warn("[Gemini] Rejected BUY because price is >5% above 7-day average");
+        return null;
+      }
+
       console.log(`[Gemini] Success: recommendation=${recommendation}, length=${text.length}`);
       return { text, recommendation };
     } catch (err) {
@@ -280,5 +344,5 @@ export async function generateAnalysis(
   if (withoutGrounding) return withoutGrounding;
 
   // Fallback template jika semua gagal
-  return buildFallbackResponse(goal, goldData, progress, usdToIdr);
+  return buildFallbackResponse(goal, goldData, progress);
 }
