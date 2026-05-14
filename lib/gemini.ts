@@ -33,6 +33,8 @@ function buildSystemPrompt(
   const diffFromHigh30d = high30d > 0 ? ((high30d - priceIdrPerGram) / high30d) * 100 : 0;
   const idealBuyPrice = Math.round(avg7d * 0.99);
   const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
+  const lowZoneMax = Math.round(low30d + (high30d - low30d) * 0.33);
+  const highZoneMin = Math.round(low30d + (high30d - low30d) * 0.66);
   const canBuyAtIdeal = goal.monthlyBudget / idealBuyPrice;
   const isAboveIdealBuyPrice = priceIdrPerGram > idealBuyPrice;
   const monthsToFinish = progress.budgetCanBuy > 0
@@ -56,6 +58,7 @@ Data pasar emas lokal Indonesia:
 - Rata-rata 30 hari: Rp${avg30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg30d >= 0 ? "+" : ""}${diffFromAvg30d.toFixed(2)}% dari rata-rata 30 hari
 - High 30 hari: Rp${high30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari
 - Low 30 hari: Rp${low30d.toLocaleString("id-ID")}/gram
+- Batas zona 30 hari: rendah <= Rp${lowZoneMax.toLocaleString("id-ID")}, menengah Rp${lowZoneMax.toLocaleString("id-ID")} - Rp${highZoneMin.toLocaleString("id-ID")}, tinggi >= Rp${highZoneMin.toLocaleString("id-ID")}
 - Perubahan 7 hari: ${goldData.changePercent7d.toFixed(2)}%
 - Perubahan 30 hari: ${goldData.changePercent30d.toFixed(2)}%
 - Tren: ${goldData.trend === "up" ? "naik" : goldData.trend === "down" ? "turun" : "menyamping"}
@@ -100,10 +103,12 @@ INSTRUKSI FORMAT (wajib):
 4. WAJIB bersikap decisif, bukan sekadar informatif. Sertakan angka konkret berikut:
    - Harga sekarang vs rata-rata 7 hari dalam Rupiah dan persen.
    - Posisi harga terhadap high/low 30 hari.
+   - Definisi zona harga menggunakan Batas zona 30 hari. Jangan hanya bilang "zona menengah" tanpa menjelaskan range-nya.
    - Jika BUY: sebutkan maksimal harga yang masih layak dibeli dan nominal tambahan yang masuk akal.
    - Jika HOLD: sebutkan trigger jelas kapan berubah jadi BUY, misalnya "beli kalau turun ke RpX".
    - Satu kalimat blunt: "Dengan kondisi ini, [beli sekarang/tunggu dip/tunda beli agresif] lebih masuk akal karena ...".
 5. ATURAN KERAS:
+   - Jika selisih harga terhadap rata-rata 7 hari berada di antara -0.05% sampai +0.05%, tulis "berada tepat di sekitar rata-rata 7 hari", bukan "sedikit di atas" atau "sedikit di bawah".
    - Jangan pernah menulis bahwa harga sekarang "di bawah harga ideal" jika data Relasi harga terhadap ideal menyatakan DI ATAS.
    - Jangan rekomendasikan BUY agresif jika harga sekarang DI ATAS harga ideal beli ringan dan pengguna sudah on track. Pilih HOLD, artinya lanjut DCA rutin tapi jangan tambah pembelian ekstra.
    - Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
@@ -112,12 +117,12 @@ INSTRUKSI FORMAT (wajib):
 7. Total panjang maksimal 430 kata.
 8. Jangan tampilkan harga dalam USD atau dollar. Semua nominal uang wajib pakai Rupiah.
  9. Jangan gunakan markdown seperti #, **, atau bullet bertingkat.
- 10. Analisis Kondisi Dunia: Sertakan analisis singkat tentang faktor global yang
-   mempengaruhi harga emas, seperti: kebijakan suku bunga The Fed (Fed Rate),
-   nilai tukar mata uang Amerika, inflasi global, dan ketegangan geopolitik.
-   Hubungkan faktor-faktor ini dengan kondisi pasar emas saat ini dan
-   berikan konteks bagaimana hal ini mempengaruhi strategi tabungan emas
-   pengguna di Indonesia.
+ 10. Analisis Kondisi Dunia: Sertakan analisis seimbang tentang faktor global.
+   Sebutkan maksimal 2 faktor pendukung emas dan maksimal 2 faktor penekan emas.
+   Faktor pendukung bisa meliputi Fed yang melunak, inflasi, dan geopolitik.
+   Faktor penekan wajib mempertimbangkan penguatan dolar AS, yield obligasi tinggi,
+   atau aksi ambil untung. Jangan membuat narasi terlalu bullish jika data harga lokal
+   sedang dekat high 30 hari atau berada di atas harga ideal beli.
 11. WAJIB selesaikan semua section. Jangan berhenti di tengah kalimat.`;
 }
 
@@ -266,7 +271,7 @@ export async function generateAnalysis(
 
   const generationConfig = {
     temperature: 0.7,
-    maxOutputTokens: 2048,
+    maxOutputTokens: 10000,
   };
 
   const safetySettings = [
