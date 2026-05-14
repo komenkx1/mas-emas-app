@@ -37,8 +37,11 @@ function buildSystemPrompt(
   const lowZoneMax = Math.round(low30d + (high30d - low30d) * 0.33);
   const highZoneMin = Math.round(low30d + (high30d - low30d) * 0.66);
   const additionalBuyTrigger = Math.min(idealBuyPrice, lowZoneMax);
+  const nearTermDipTarget = Math.round(Math.min(avg30d, lowZoneMax, idealBuyPrice));
+  const nearTermUpsideTarget = Math.round(Math.min(high30d, Math.max(avg7d, priceIdrPerGram) * 1.015));
   const zoneMethodText = `Zona harga dihitung dari rentang low-high 30 hari: low Rp${low30d.toLocaleString("id-ID")}, high Rp${high30d.toLocaleString("id-ID")}, lalu dibagi tiga bagian sama lebar; zona menengah berada di Rp${lowZoneMax.toLocaleString("id-ID")} - Rp${highZoneMin.toLocaleString("id-ID")}.`;
   const lowHighPositionText = `Harga sekarang Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram berada ${diffFromLow30d.toFixed(2)}% di atas low 30 hari dan ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari.`;
+  const forecastText = `Skenario 7-14 hari: harga mungkin turun ke sekitar Rp${nearTermDipTarget.toLocaleString("id-ID")}/gram jika tekanan jual muncul, atau mungkin naik ke sekitar Rp${nearTermUpsideTarget.toLocaleString("id-ID")}/gram jika sentimen emas menguat. Ini perkiraan berbasis rata-rata 7/30 hari, low/high 30 hari, dan kondisi makro dari grounding, bukan kepastian.`;
   const avg7dRelationText = Math.abs(diffFromAvg7d) <= 0.05
     ? `berada tepat di sekitar rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram`
     : `${diffFromAvg7d > 0 ? "berada di atas" : "berada di bawah"} rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram sebesar ${Math.abs(diffFromAvg7d).toFixed(2)}%`;
@@ -77,6 +80,7 @@ Data pasar emas lokal Indonesia:
 - Harga ideal beli ringan: di bawah Rp${idealBuyPrice.toLocaleString("id-ID")}/gram
 - Harga beli agresif: di bawah Rp${strongBuyPrice.toLocaleString("id-ID")}/gram
 - Trigger BUY tambahan utama: Rp${additionalBuyTrigger.toLocaleString("id-ID")}/gram, yaitu batas yang lebih konservatif antara harga ideal beli ringan dan batas bawah zona menengah
+- Frasa wajib skenario harga dekat: ${forecastText}
 - Relasi harga terhadap ideal: harga sekarang ${isAboveIdealBuyPrice ? "DI ATAS" : "DI BAWAH ATAU SAMA DENGAN"} harga ideal beli ringan sebesar ${Math.abs(priceIdrPerGram - idealBuyPrice).toLocaleString("id-ID")} Rupiah
 
 Target pengguna:
@@ -116,6 +120,7 @@ INSTRUKSI FORMAT (wajib):
    - Harga sekarang vs rata-rata 7 hari dalam Rupiah dan persen.
    - Posisi harga terhadap high/low 30 hari.
    - Untuk posisi terhadap high/low 30 hari, gunakan Frasa wajib posisi high-low 30 hari. Jangan hitung ulang persentasenya sendiri.
+   - Skenario harga 7-14 hari: sebutkan area turun dan area naik dari Frasa wajib skenario harga dekat, lalu jelaskan 1 alasan teknikal dan 1 alasan kondisi dunia dari grounding.
    - Definisi zona harga menggunakan Batas zona 30 hari. Jangan hanya bilang "zona menengah" tanpa menjelaskan range-nya.
    - Jika BUY: sebutkan maksimal harga yang masih layak dibeli dan nominal tambahan yang masuk akal.
    - Jika HOLD: sebutkan trigger jelas kapan berubah jadi BUY, misalnya "beli kalau turun ke RpX".
@@ -128,6 +133,7 @@ INSTRUKSI FORMAT (wajib):
    - Jika menyebut "harga ideal beli ringan", wajib sebutkan angka Rp${idealBuyPrice.toLocaleString("id-ID")}. Jika memakai trigger zona, sebutkan angka Rp${lowZoneMax.toLocaleString("id-ID")} dan jangan mencampuradukkan keduanya.
    - Untuk tanggal target tercapai, WAJIB gunakan persis "${progress.estimatedAchieveDate}" dari Perkiraan tercapai kalkulasi sistem. Jangan membuat bulan/tahun estimasi sendiri.
    - Jika menyebut dua referensi harga, jelaskan perannya: harga ideal beli ringan Rp${idealBuyPrice.toLocaleString("id-ID")} berasal dari 1% di bawah rata-rata 7 hari, sedangkan trigger BUY tambahan utama Rp${additionalBuyTrigger.toLocaleString("id-ID")} adalah batas yang lebih konservatif untuk tambah pembelian agresif.
+   - Jangan membuat prediksi tanggal pasti seperti "akan turun hari X". Gunakan bahasa awam: "mungkin turun ke sekitar RpX" dan "mungkin naik ke sekitar RpY", lalu tekankan bahwa ini bukan kepastian.
    - Jangan pernah menulis bahwa harga sekarang "di bawah harga ideal" jika data Relasi harga terhadap ideal menyatakan DI ATAS.
    - Jangan rekomendasikan BUY agresif jika harga sekarang DI ATAS harga ideal beli ringan dan pengguna sudah on track. Pilih HOLD, artinya lanjut DCA rutin tapi jangan tambah pembelian ekstra.
    - Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
