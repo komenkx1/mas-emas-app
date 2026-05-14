@@ -228,7 +228,7 @@ export async function fetchHistoryPrices(
     // like "Emas Batangan", so filtering by "antam" would drop valid history.
     // The API returns all product variants per day (~23 rows/day). Fetch enough
     // raw rows to cover the requested date range before grouping by date.
-    const estimatedRowsPerDay = 24;
+    const estimatedRowsPerDay = 30;
     const historyLength = Math.min(Math.max(days * estimatedRowsPerDay, 50), 1000);
     const url = `${API_BASE_URL}/prices/${source}/history?page=1&length=${historyLength}`;
     const res = await fetchWithTimeout(
@@ -288,37 +288,4 @@ export async function fetchHistoryPrices(
     );
     return [];
   }
-}
-
-/**
- * Build mock historical data
- */
-function buildMockHistory(days: number): NormalizedGoldPrice[] {
-  const history: NormalizedGoldPrice[] = [];
-  const basePrice = 1450000;
-  const now = new Date();
-
-  for (let i = 0; i < days; i++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split("T")[0];
-
-    // Simulate slight price variation
-    const variation = Math.sin(i * 0.3) * 20000;
-    const sellPrice = Math.round(basePrice + variation);
-    const buybackPrice = Math.round(sellPrice * 0.93);
-
-    history.push({
-      sellPrice,
-      buybackPrice,
-      spread: sellPrice - buybackPrice,
-      spreadPercent: ((sellPrice - buybackPrice) / sellPrice) * 100,
-      recordedDate: dateStr,
-      source: "mock",
-      materialType: "antam",
-      weight: 1,
-    });
-  }
-
-  return history;
 }
