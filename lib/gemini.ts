@@ -34,6 +34,16 @@ function buildSystemPrompt(
   const idealBuyPrice = Math.round(avg7d * 0.99);
   const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
   const canBuyAtIdeal = goal.monthlyBudget / idealBuyPrice;
+  const isAboveIdealBuyPrice = priceIdrPerGram > idealBuyPrice;
+  const monthsToFinish = progress.budgetCanBuy > 0
+    ? progress.gramsNeeded / progress.budgetCanBuy
+    : Number.POSITIVE_INFINITY;
+  const scheduleBufferMonths = progress.monthsLeft - monthsToFinish;
+  const scheduleStatus = scheduleBufferMonths >= 6
+    ? "jauh lebih cepat dari target"
+    : progress.isOnTrack
+      ? "on track"
+      : "belum on track";
 
   return `Kamu adalah Mas Emas, penasihat investasi emas pribadi yang ramah dan berpengetahuan. Gunakan bahasa Indonesia yang santai tapi profesional.
 
@@ -52,6 +62,7 @@ Data pasar emas lokal Indonesia:
 - Zona harga: ${goldData.priceZone === "low" ? "rendah" : goldData.priceZone === "high" ? "tinggi" : "menengah"}
 - Harga ideal beli ringan: di bawah Rp${idealBuyPrice.toLocaleString("id-ID")}/gram
 - Harga beli agresif: di bawah Rp${strongBuyPrice.toLocaleString("id-ID")}/gram
+- Relasi harga terhadap ideal: harga sekarang ${isAboveIdealBuyPrice ? "DI ATAS" : "DI BAWAH ATAU SAMA DENGAN"} harga ideal beli ringan sebesar ${Math.abs(priceIdrPerGram - idealBuyPrice).toLocaleString("id-ID")} Rupiah
 
 Target pengguna:
 - Tujuan: ${goal.goalName}${goal.goalName === "lainnya" ? " (lainnya)" : ""}
@@ -65,6 +76,7 @@ Target pengguna:
 - Sisa waktu: ${progress.monthsLeft} bulan
 - Perkiraan tercapai: ${progress.estimatedAchieveDate}
 - On track: ${progress.isOnTrack ? "Ya" : "Tidak"}
+- Status jadwal: ${scheduleStatus}; estimasi butuh sekitar ${Number.isFinite(monthsToFinish) ? monthsToFinish.toFixed(1) : "tidak terhingga"} bulan untuk menyelesaikan target
 
 INSTRUKSI FORMAT (wajib):
 1. Awali dengan emoji relevan dan salam singkat.
@@ -91,7 +103,11 @@ INSTRUKSI FORMAT (wajib):
    - Jika BUY: sebutkan maksimal harga yang masih layak dibeli dan nominal tambahan yang masuk akal.
    - Jika HOLD: sebutkan trigger jelas kapan berubah jadi BUY, misalnya "beli kalau turun ke RpX".
    - Satu kalimat blunt: "Dengan kondisi ini, [beli sekarang/tunggu dip/tunda beli agresif] lebih masuk akal karena ...".
-5. ATURAN KERAS: Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
+5. ATURAN KERAS:
+   - Jangan pernah menulis bahwa harga sekarang "di bawah harga ideal" jika data Relasi harga terhadap ideal menyatakan DI ATAS.
+   - Jangan rekomendasikan BUY agresif jika harga sekarang DI ATAS harga ideal beli ringan dan pengguna sudah on track. Pilih HOLD, artinya lanjut DCA rutin tapi jangan tambah pembelian ekstra.
+   - Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
+   - Jika status jadwal "jauh lebih cepat dari target", jangan sebut sekadar "on track" saja; jelaskan bahwa pengguna punya buffer waktu besar.
 6. Untuk tujuan tabungan jangka panjang, bedakan "beli rutin sesuai budget" dari "BUY agresif/tambah pembelian". HOLD tetap boleh berarti lanjut DCA rutin, tapi jangan tambah agresif.
 7. Total panjang maksimal 430 kata.
 8. Jangan tampilkan harga dalam USD atau dollar. Semua nominal uang wajib pakai Rupiah.
@@ -190,8 +206,10 @@ function getDecisionMetrics(goldData: GoldData, monthlyBudget: number) {
 
 function chooseRecommendation(goldData: GoldData, progress: GoalProgress): Recommendation {
   const metrics = getDecisionMetrics(goldData, 1);
+  const isAboveIdealBuyPrice = metrics.currentPrice > metrics.idealBuyPrice;
 
   if (metrics.diffFromAvg7d > 5) return "HOLD";
+  if (isAboveIdealBuyPrice && progress.isOnTrack) return "HOLD";
   if (goldData.priceZone === "low" || metrics.diffFromAvg7d < -2) return "BUY";
   if (goldData.priceZone === "high" && goldData.changePercent7d > 3 && progress.isOnTrack) return "HOLD";
   if (!progress.isOnTrack && metrics.diffFromAvg7d <= 2) return "BUY";
@@ -321,6 +339,15 @@ export async function generateAnalysis(
       const metrics = getDecisionMetrics(goldData, goal.monthlyBudget);
       if (recommendation === "BUY" && metrics.diffFromAvg7d > 5) {
         console.warn("[Gemini] Rejected BUY because price is >5% above 7-day average");
+        return null;
+      }
+      if (recommendation === "BUY" && metrics.currentPrice > metrics.idealBuyPrice && progress.isOnTrack) {
+        console.warn("[Gemini] Rejected BUY because price is above ideal and user is on track");
+        return null;
+      }
+
+      if (/harga sekarang[^.]{0,80}di bawah[^.]{0,80}harga ideal/i.test(text) && metrics.currentPrice > metrics.idealBuyPrice) {
+        console.warn("[Gemini] Rejected response because it inverted current price vs ideal price");
         return null;
       }
 
