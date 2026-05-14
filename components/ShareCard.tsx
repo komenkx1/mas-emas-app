@@ -35,7 +35,7 @@ export default function ShareCard({ result }: ShareCardProps) {
     return `📊 Analisis Emas Mas Emas
 
 💰 Harga Emas: ${formatRupiah(currentPriceIdrPerGram)}/gram
-📈 Perubahan 7 hari: ${goldData.changePercent7d > 0 ? "+" : ""}${goldData.changePercent7d.toFixed(2)}%
+📈 Perubahan 30 hari: ${goldData.changePercent30d > 0 ? "+" : ""}${goldData.changePercent30d.toFixed(2)}%
 📉 Spread: ${goldData.spreadPercent.toFixed(1)}%
 
 🎯 Target: ${progress.gramsNeeded.toFixed(2)} gram lagi
@@ -117,10 +117,10 @@ Waktu: ${formatDate(timestamp)}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <p className="text-xs text-gray-400">Perubahan 7 hari</p>
-            <p className={`mt-1 text-lg font-semibold ${goldData.changePercent7d >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {goldData.changePercent7d >= 0 ? "+" : ""}
-              {goldData.changePercent7d.toFixed(2)}%
+            <p className="text-xs text-gray-400">Perubahan 30 hari</p>
+            <p className={`mt-1 text-lg font-semibold ${goldData.changePercent30d >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {goldData.changePercent30d >= 0 ? "+" : ""}
+              {goldData.changePercent30d.toFixed(2)}%
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
