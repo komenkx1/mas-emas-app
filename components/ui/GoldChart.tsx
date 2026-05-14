@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { HistoricalPrice } from "@/lib/types";
 
@@ -10,9 +11,14 @@ interface GoldChartProps {
 export default function GoldChart({ data }: GoldChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-[200px] flex items-center justify-center rounded-xl border border-gold/10 bg-white/5 text-gray-500 text-sm">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="h-[200px] flex items-center justify-center rounded-xl border border-gold/10 bg-white/5 text-gray-500 text-sm"
+      >
         Tidak ada data untuk ditampilkan
-      </div>
+      </motion.div>
     );
   }
 
@@ -22,7 +28,13 @@ export default function GoldChart({ data }: GoldChartProps) {
   }));
 
   return (
-    <div className="w-full overflow-hidden rounded-xl" style={{ minHeight: 200, height: 200 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="w-full overflow-hidden rounded-xl"
+      style={{ minHeight: 200, height: 200 }}
+    >
       <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
           <LineChart data={chartData} margin={{ top: 8, right: 4, left: -8, bottom: 4 }}>
           <XAxis
@@ -66,9 +78,11 @@ export default function GoldChart({ data }: GoldChartProps) {
             strokeWidth={2.5}
             dot={false}
             activeDot={{ r: 4, fill: "#F5D76E" }}
+            animationDuration={1200}
+            animationEasing="ease-out"
           />
         </LineChart>
       </ResponsiveContainer>
-    </div>
+    </motion.div>
   );
 }
