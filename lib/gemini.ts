@@ -35,6 +35,9 @@ function buildSystemPrompt(
   const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
   const lowZoneMax = Math.round(low30d + (high30d - low30d) * 0.33);
   const highZoneMin = Math.round(low30d + (high30d - low30d) * 0.66);
+  const avg7dRelationText = Math.abs(diffFromAvg7d) <= 0.05
+    ? `berada tepat di sekitar rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram`
+    : `${diffFromAvg7d > 0 ? "berada di atas" : "berada di bawah"} rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram sebesar ${Math.abs(diffFromAvg7d).toFixed(2)}%`;
   const canBuyAtIdeal = goal.monthlyBudget / idealBuyPrice;
   const isAboveIdealBuyPrice = priceIdrPerGram > idealBuyPrice;
   const monthsToFinish = progress.budgetCanBuy > 0
@@ -55,10 +58,12 @@ Data pasar emas lokal Indonesia:
 - Harga buyback: Rp${goldData.buybackPrice.toLocaleString("id-ID")}/gram
 - Spread: Rp${goldData.spread.toLocaleString("id-ID")} (${goldData.spreadPercent.toFixed(1)}%)
 - Rata-rata 7 hari: Rp${avg7d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg7d >= 0 ? "+" : ""}${diffFromAvg7d.toFixed(2)}% dari rata-rata 7 hari
+- Frasa wajib rata-rata 7 hari: harga sekarang ${avg7dRelationText}
 - Rata-rata 30 hari: Rp${avg30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg30d >= 0 ? "+" : ""}${diffFromAvg30d.toFixed(2)}% dari rata-rata 30 hari
 - High 30 hari: Rp${high30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari
 - Low 30 hari: Rp${low30d.toLocaleString("id-ID")}/gram
 - Batas zona 30 hari: rendah <= Rp${lowZoneMax.toLocaleString("id-ID")}, menengah Rp${lowZoneMax.toLocaleString("id-ID")} - Rp${highZoneMin.toLocaleString("id-ID")}, tinggi >= Rp${highZoneMin.toLocaleString("id-ID")}
+- Metodologi zona: rentang low-high 30 hari dibagi menjadi 3 bagian sama lebar; sepertiga bawah=rendah, sepertiga tengah=menengah, sepertiga atas=tinggi
 - Perubahan 7 hari: ${goldData.changePercent7d.toFixed(2)}%
 - Perubahan 30 hari: ${goldData.changePercent30d.toFixed(2)}%
 - Tren: ${goldData.trend === "up" ? "naik" : goldData.trend === "down" ? "turun" : "menyamping"}
@@ -109,6 +114,9 @@ INSTRUKSI FORMAT (wajib):
    - Satu kalimat blunt: "Dengan kondisi ini, [beli sekarang/tunggu dip/tunda beli agresif] lebih masuk akal karena ...".
 5. ATURAN KERAS:
    - Jika selisih harga terhadap rata-rata 7 hari berada di antara -0.05% sampai +0.05%, tulis "berada tepat di sekitar rata-rata 7 hari", bukan "sedikit di atas" atau "sedikit di bawah".
+   - Untuk membahas rata-rata 7 hari, gunakan Frasa wajib rata-rata 7 hari secara persis atau sangat dekat. Jangan menulis klaim arah yang bertentangan dengan frasa itu.
+   - Jangan menyebut "tren naik" atau "tren turun" tanpa timeframe. Gunakan "tren 7 hari naik/turun" dan "tren 30 hari naik/turun" secara eksplisit jika keduanya berbeda.
+   - Saat menyebut zona harga, jelaskan metodologinya singkat: zona dihitung dari pembagian sepertiga range low-high 30 hari.
    - Jangan pernah menulis bahwa harga sekarang "di bawah harga ideal" jika data Relasi harga terhadap ideal menyatakan DI ATAS.
    - Jangan rekomendasikan BUY agresif jika harga sekarang DI ATAS harga ideal beli ringan dan pengguna sudah on track. Pilih HOLD, artinya lanjut DCA rutin tapi jangan tambah pembelian ekstra.
    - Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
@@ -353,6 +361,10 @@ export async function generateAnalysis(
 
       if (/harga sekarang[^.]{0,80}di bawah[^.]{0,80}harga ideal/i.test(text) && metrics.currentPrice > metrics.idealBuyPrice) {
         console.warn("[Gemini] Rejected response because it inverted current price vs ideal price");
+        return null;
+      }
+      if (Math.abs(metrics.diffFromAvg7d) <= 0.05 && /sedikit\s+(di\s+)?(atas|bawah)[^.]{0,80}rata-rata\s+7\s+hari/i.test(text)) {
+        console.warn("[Gemini] Rejected response because it described ~0% 7-day average difference as slightly above/below");
         return null;
       }
 
