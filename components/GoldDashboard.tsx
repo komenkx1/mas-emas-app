@@ -1,7 +1,6 @@
 "use client";
 
 import type { GoldData } from "@/lib/types";
-import { usdOzToIdrGram } from "@/lib/calculations";
 import GoldChart from "./ui/GoldChart";
 
 interface GoldDashboardProps {
@@ -34,7 +33,7 @@ export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: Gold
   const isPositive = changePercent >= 0;
   const displayPrice = typeof currentPriceIdrPerGram === "number" && currentPriceIdrPerGram > 0
     ? currentPriceIdrPerGram
-    : usdOzToIdrGram(goldData.currentPrice, 16500);
+    : goldData.currentPrice;
 
   return (
     <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
@@ -57,9 +56,25 @@ export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: Gold
         </div>
       </div>
 
+      {/* Spread Info */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white/5 rounded-xl p-3 border border-gold/10">
+          <p className="text-xs text-gray-400 mb-1">Harga Buyback</p>
+          <p className="text-lg font-semibold text-white">{formatRupiah(goldData.buybackPrice)}</p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-3 border border-gold/10">
+          <p className="text-xs text-gray-400 mb-1">Spread</p>
+          <p className="text-lg font-semibold text-white">{formatRupiah(goldData.spread)}</p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-3 border border-gold/10">
+          <p className="text-xs text-gray-400 mb-1">Spread %</p>
+          <p className="text-lg font-semibold text-white">{goldData.spreadPercent.toFixed(1)}%</p>
+        </div>
+      </div>
+
       {goldData.historicalPrices && goldData.historicalPrices.length > 0 ? (
         <div className="mt-6">
-          <h4 className="text-sm text-gray-400 mb-3">Tren Harga 7 Hari Terakhir</h4>
+          <h4 className="text-sm text-gray-400 mb-3">Tren Harga 30 Hari Terakhir</h4>
           <GoldChart data={goldData.historicalPrices} />
         </div>
       ) : (
@@ -70,7 +85,7 @@ export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: Gold
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-white/10">
         <p className="text-xs text-gray-500">
-          Sumber: {goldData.source === "live" ? "Data Live" : "Data Mock"}
+          Sumber: {goldData.source === "logammulia" ? "Logam Mulia" : goldData.source === "mock" ? "Data Mock" : goldData.source}
         </p>
         <p className="text-xs text-gray-500">
           {formatTimestamp(goldData.timestamp)}

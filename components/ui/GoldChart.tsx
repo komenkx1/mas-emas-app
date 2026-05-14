@@ -2,14 +2,12 @@
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import type { HistoricalPrice } from "@/lib/types";
-import { usdOzToIdrGram } from "@/lib/calculations";
 
 interface GoldChartProps {
   data: HistoricalPrice[];
-  usdToIdr?: number;
 }
 
-export default function GoldChart({ data, usdToIdr = 16500 }: GoldChartProps) {
+export default function GoldChart({ data }: GoldChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="h-[200px] flex items-center justify-center rounded-xl border border-gold/10 bg-white/5 text-gray-500 text-sm">
@@ -20,7 +18,7 @@ export default function GoldChart({ data, usdToIdr = 16500 }: GoldChartProps) {
 
   const chartData = data.map((item) => ({
     date: new Date(item.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-    price: usdOzToIdrGram(item.price, usdToIdr),
+    price: item.price,
   }));
 
   return (
