@@ -11,11 +11,11 @@ export interface UserGoal {
 
 export interface HistoricalPrice {
   date: string;
-  price: number;
+  price: number; // IDR per gram
 }
 
 export interface GoldData {
-  currentPrice: number;
+  currentPrice: number; // IDR per gram
   price7dAgo: number;
   price30dAgo: number;
   high30d: number;
@@ -30,7 +30,16 @@ export interface GoldData {
   changePercent30d: number;
   historicalPrices: HistoricalPrice[];
   timestamp: string;
-  source: "live" | "mock";
+  source: string; // e.g., "logammulia", "mock"
+  buybackPrice: number; // IDR per gram
+  spread: number; // sellPrice - buybackPrice
+  spreadPercent: number;
+}
+
+export interface DipAlert {
+  isDip: boolean;
+  dipPercent: number;
+  message: string;
 }
 
 export interface GoalProgress {
@@ -50,6 +59,7 @@ export interface AnalysisResult {
   recommendation: "BUY" | "HOLD" | "SELL";
   currentPriceIdrPerGram: number;
   timestamp: string;
+  dipAlert?: DipAlert;
 }
 
 export interface ApiRequest {
