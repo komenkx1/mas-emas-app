@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import GoalForm from "@/components/GoalForm";
 import GoldDashboard from "@/components/GoldDashboard";
 import MasEmasCard from "@/components/MasEmasCard";
@@ -95,6 +95,16 @@ export default function Home() {
   const [currentGoal, setCurrentGoal] = useState<UserGoal | null>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>("analisis");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!result) return;
+    const timer = window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [result]);
 
   const handleSubmit = async (goal: UserGoal) => {
     setIsLoading(true);
@@ -194,7 +204,7 @@ export default function Home() {
 
         {/* Results Section */}
         {result && currentGoal && (
-          <div className="space-y-6 md:space-y-8">
+          <div ref={resultsRef} className="scroll-mt-6 space-y-6 md:space-y-8">
             {/* Dip Alert */}
             {result.dipAlert && (
               <DipAlertBanner dipAlert={result.dipAlert} />
