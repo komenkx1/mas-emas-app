@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import type { UserGoal, GoldData, GoalProgress } from "./types";
 
-const DEFAULT_MODEL = "gemini-3-flash-preview";
+const DEFAULT_MODEL = "gemini-2.5-flash-lite";
 
 export type Recommendation = "BUY" | "HOLD" | "SELL";
 
@@ -248,7 +248,7 @@ export async function generateAnalysis(
 
   const generationConfig = {
     temperature: 0.7,
-    maxOutputTokens: 1024,
+    maxOutputTokens: 2048,
   };
 
   const safetySettings = [
