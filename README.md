@@ -1,20 +1,26 @@
 # Mas Emas
 
-**Kalkulator investasi emas cerdas dengan analisis AI untuk membantu Anda mencapai tujuan finansial.**
+**Kalkulator investasi emas Indonesia dengan harga Logam Mulia real-time, simulasi DCA, dan analisis Gemini AI yang lebih decisif.**
 
-Aplikasi web Next.js yang menghitung progres tabungan emas Anda, mengkonversi harga emas dunia (USD/oz) ke Rupiah per gram, dan menghasilkan rekomendasi investasi personal menggunakan Google Gemini AI dengan data pasar real-time.
+Mas Emas membantu pengguna menjawab pertanyaan utama: **"lebih masuk akal beli emas sekarang, lanjut DCA rutin, atau tunggu harga turun?"**
+
+Aplikasi ini menggunakan Next.js 16 App Router, harga emas lokal Indonesia dari self-hosted API, dan Gemini AI untuk membuat rekomendasi `BUY` / `HOLD` / `SELL` berbasis harga IDR/gram, spread, histori harga, dan target finansial pengguna.
 
 ---
 
-## Fitur
+## Fitur Terbaru
 
-- **Harga Emas Real-Time** – Mengambil data harga emas dunia dari [GoldAPI.io](https://www.goldapi.io/) dengan konversi otomatis ke IDR/gram
-- **Kalkulator Tabungan Emas** – Hitung berapa gram yang bisa dibeli per bulan, estimasi kapan target tercapai, dan apakah Anda on-track
-- **Analisis AI (Gemini)** – Rekomendasi `BUY` / `HOLD` / `SELL` berdasarkan kondisi pasar & profil tujuan Anda
-- **Analisis Kondisi Dunia** – AI membahas faktor global (Fed Rate, DXY, inflasi, geopolitik) yang mempengaruhi harga emas
-- **Chart Harga Historis** – Visualisasi tren 7 hari terakhir dalam Rupiah per gram
-- **Fallback Otomatis** – Kalau API emas atau AI gagal, sistem tetap berjalan dengan data mock & template lokal
-- **Responsive Design** – Mobile-first dengan Tailwind CSS dan glassmorphism UI
+- **Harga Emas Lokal IDR/gram** – Mengambil harga dari self-hosted Mas Emas API, default source `logammulia`.
+- **Buy vs Buyback Spread** – Menampilkan harga jual, harga buyback, spread Rupiah, dan spread persen.
+- **Chart Harga Historis** – Menggunakan endpoint `/history` jika database API sudah memiliki snapshot harian.
+- **Quick Decision Card** – Ringkasan keputusan langsung: `BUY`, `HOLD`, atau `SELL`, plus trigger harga beli.
+- **Analisis AI Gemini** – Prompt sudah dibuat lebih konkret: wajib menyebut rata-rata 7/30 hari, high/low, trigger beli, dan aksi praktis.
+- **Kalkulator Progress Target** – Menghitung kebutuhan gram, budget dapat beli, status on-track, dan estimasi target tercapai.
+- **Simulasi DCA** – Slider budget, durasi, dan asumsi kenaikan harga untuk estimasi akumulasi gram.
+- **Share Card** – Preview card + tombol salin/bagikan untuk membagikan ringkasan analisis.
+- **Dip Alert** – Alert berbasis histori harga ketika harga mendekati area menarik.
+- **Mobile-first Tab UX** – Setelah hasil muncul, pengguna bisa berpindah tab `Analisis`, `DCA`, dan `Share` tanpa scroll panjang.
+- **Fallback Aman** – Jika API emas atau Gemini gagal, app tetap berjalan dengan fallback lokal.
 
 ---
 
@@ -27,11 +33,10 @@ Aplikasi web Next.js yang menghitung progres tabungan emas Anda, mengkonversi ha
 | Styling | Tailwind CSS 4 + PostCSS |
 | Fonts | Playfair Display (heading), DM Sans (body) |
 | Chart | [Recharts](https://recharts.org/) 3.8 |
-| Animation | Framer Motion |
 | AI | Google Generative AI SDK (`@google/generative-ai`) |
-| External API | GoldAPI.io |
+| Price API | Self-hosted Mas Emas API |
 
-> **Catatan:** Ini Next.js v16 yang memiliki breaking changes dari versi sebelumnya. Baca `node_modules/next/dist/docs/` jika menulis kode baru.
+> **Catatan penting:** Project ini memakai Next.js 16 yang punya breaking changes. Sebelum menulis kode baru, baca guide relevan di `node_modules/next/dist/docs/`.
 
 ---
 
@@ -40,23 +45,27 @@ Aplikasi web Next.js yang menghitung progres tabungan emas Anda, mengkonversi ha
 ```
 mas-emas-app/
 ├── app/
-│   ├── api/analyze/route.ts      # API route POST /api/analyze
+│   ├── api/analyze/route.ts      # POST /api/analyze
 │   ├── globals.css               # Global styles + Tailwind
 │   ├── layout.tsx                # Root layout & fonts
-│   └── page.tsx                  # Homepage (GoalForm + Results)
+│   └── page.tsx                  # Homepage, result tabs, quick decision card
 ├── components/
-│   ├── GoalForm.tsx              # Form input tujuan investasi
-│   ├── GoldDashboard.tsx         # Card harga emas & chart
-│   ├── MasEmasCard.tsx           # Card analisis AI
-│   ├── ProgressTracker.tsx       # Card progres tabungan
+│   ├── DCASimulator.tsx          # Simulasi Dollar Cost Averaging emas
+│   ├── DipAlertBanner.tsx        # Banner alert ketika harga turun menarik
+│   ├── GoalForm.tsx              # Form input target investasi
+│   ├── GoldDashboard.tsx         # Harga emas, spread, chart historis
+│   ├── MasEmasCard.tsx           # Render hasil analisis AI
+│   ├── ProgressTracker.tsx       # Progress target tabungan emas
+│   ├── ShareCard.tsx             # Preview + tombol salin/bagikan
 │   └── ui/
-│       └── GoldChart.tsx         # Line chart harga historis
+│       └── GoldChart.tsx         # Chart Recharts IDR/gram
 ├── lib/
-│   ├── calculations.ts           # Konversi USD/oz → IDR/gram + progress math
-│   ├── gemini.ts                 # Gemini AI integration & prompt engineering
-│   ├── goldapi.ts                # GoldAPI.io client + caching
+│   ├── calculations.ts           # Progress math dan helper tanggal
+│   ├── emas-api.ts               # Server-only self-hosted API client
+│   ├── gemini.ts                 # Gemini prompt, validation, fallback
+│   ├── gold-data.ts              # Aggregation current + history + dip alert
 │   └── types.ts                  # TypeScript interfaces
-├── .env                          # Environment variables (jangan di-commit!)
+├── .env.example                  # Template environment variables
 ├── next.config.ts
 ├── postcss.config.mjs
 └── package.json
@@ -76,25 +85,27 @@ npm install
 
 ### 2. Environment Variables
 
-Copy `.env.example` ke `.env` (atau buat file `.env` baru) dan isi:
+Copy `.env.example` ke `.env` dan isi:
 
 ```env
-# GoldAPI.io API Key (opsional – fallback ke mock data jika kosong)
-GOLDAPI_KEY=your_goldapi_key_here
+# Optional, default production API
+SELF_HOSTED_API_URL=https://api-mas-emas.mangwahyu.tech/api
 
-# Google Gemini API Key (opsional – fallback ke template jika kosong)
+# Required untuk fetch harga real dari API self-hosted
+SELF_HOSTED_API_KEY=your_api_key_here
+
+# Optional, fallback ke template lokal jika kosong
 GEMINI_API_KEY=your_gemini_api_key_here
 
-# Model Gemini (default: gemini-2.5-flash-lite)
+# Default model
 AI_MODEL=gemini-2.5-flash-lite
-
-# Kurs USD ke IDR (default: 16500)
-USD_TO_IDR=16500
 ```
 
-**Dapatkan API Key:**
-- **GoldAPI.io** – [goldapi.io](https://www.goldapi.io/) (free tier: 10 req/hari)
-- **Gemini** – [Google AI Studio](https://aistudio.google.com/app/apikey)
+**Catatan security:**
+- Jangan commit `.env`.
+- `SELF_HOSTED_API_KEY` hanya dipakai server-side di `lib/emas-api.ts`.
+- Browser tidak pernah memanggil self-hosted API langsung.
+- Semua request harga lewat Next.js server route atau server-only module.
 
 ### 3. Jalankan Development Server
 
@@ -104,120 +115,232 @@ npm run dev
 
 Buka [http://localhost:3000](http://localhost:3000).
 
-### 4. Build untuk Production
+### 4. Build Production
 
 ```bash
 npm run build
 npm start
 ```
 
+Jika shell memakai Node lama, gunakan Node 20+ atau Node 22. Next.js 16 membutuhkan runtime modern.
+
+---
+
+## Self-Hosted API
+
+Base URL default:
+
+```txt
+https://api-mas-emas.mangwahyu.tech/api
+```
+
+Semua endpoint di bawah `/api/*` butuh header:
+
+```txt
+x-api-key: <SELF_HOSTED_API_KEY>
+```
+
+### Current Price
+
+```txt
+GET /api/prices/logammulia
+```
+
+Response sukses:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "source": "logammulia",
+      "material": "gold",
+      "materialType": "Emas Batangan",
+      "weight": 1,
+      "weightUnit": "gr",
+      "sellPrice": 2839000,
+      "buybackPrice": 0,
+      "currency": "IDR",
+      "recordedDate": "2026-05-13",
+      "lineKey": "gold-2-tr4"
+    }
+  ],
+  "count": 23,
+  "timestamp": "2026-05-13T03:44:54.553Z",
+  "cached": true
+}
+```
+
+### History
+
+```txt
+GET /api/prices/logammulia/history?page=1&length=900
+```
+
+App mengambil raw rows lalu normalisasi lokal. Jangan filter `materialType=antam` di query karena Logam Mulia memakai nilai seperti `Emas Batangan`.
+
+Response sukses:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "source": "logammulia",
+      "material": "gold",
+      "materialType": "Emas Batangan",
+      "weight": 1,
+      "weightUnit": "gr",
+      "sellPrice": 2839000,
+      "buybackPrice": 0,
+      "currency": "IDR",
+      "recordedDate": "2026-05-13",
+      "createdAt": "2026-05-13T03:44:54.553Z",
+      "lineKey": "gold-2-tr4"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "length": 900,
+    "total": 23,
+    "totalPages": 1
+  }
+}
+```
+
+### Normalisasi Harga
+
+`lib/emas-api.ts` memilih harga canonical dengan aturan:
+
+1. Filter `material === "gold"`.
+2. Filter `currency === "IDR"`.
+3. Filter `weightUnit === "gr"`.
+4. Prefer produk standar: `materialType === "antam"` atau `materialType === "Emas Batangan"`.
+5. Prefer `weight === 1`.
+6. Jika ada duplicate `weight=1`, pilih harga per gram tertinggi untuk menghindari row pecahan yang salah terlabel 1 gram.
+7. Jika tidak ada 1 gram, pakai `sellPrice / weight`.
+8. Jika `buybackPrice` kosong atau `0`, app mengestimasi buyback di 93% dari harga jual agar spread tetap bisa ditampilkan.
+
+### Catatan History
+
+Endpoint `/history` membaca snapshot yang tersimpan di database API. Jika database baru punya data satu hari, chart akan menampilkan satu titik saja. Agar chart 30 hari penuh, API perlu cron/scheduler harian atau backfill data historis.
+
 ---
 
 ## Alur Data & Arsitektur
 
 ```
-┌─────────────┐     POST /api/analyze     ┌─────────────────┐
-│   Browser   │ ─────────────────────────> │  Next.js API    │
-│  (User)     │                            │  (app/api/)     │
-└─────────────┘                            └────────┬────────┘
-     ^                                              │
-     │                                              │ 1. Validasi input
-     │                                              │ 2. getGoldData() → GoldAPI.io
-     │                                              │ 3. usdOzToIdrGram() → IDR/gram
-     │                                              │ 4. calculateGoalProgress()
-     │                                              │ 5. generateAnalysis() → Gemini AI
-     │                                              │
-     └──────────────────────────────────────────────┘
-                        JSON Response:
-                        - goldData (USD/oz + historis)
-                        - currentPriceIdrPerGram (konversi)
-                        - progress (progres tabungan)
-                        - aiResponse (analisis AI)
-                        - recommendation (BUY/HOLD/SELL)
+┌─────────────┐      POST /api/analyze      ┌────────────────────┐
+│   Browser   │ ──────────────────────────> │ Next.js API Route  │
+│  (User)     │                             │ app/api/analyze    │
+└─────────────┘                             └─────────┬──────────┘
+      ^                                               │
+      │                                               │ 1. Validasi input goal
+      │                                               │ 2. getGoldData()
+      │                                               │ 3. fetch current Logam Mulia
+      │                                               │ 4. fetch history Logam Mulia
+      │                                               │ 5. normalize IDR/gram
+      │                                               │ 6. calculateGoalProgress()
+      │                                               │ 7. generateAnalysis() Gemini
+      │                                               │
+      └───────────────────────────────────────────────┘
+                         JSON Response:
+                         - goldData IDR-native
+                         - currentPriceIdrPerGram
+                         - progress
+                         - dipAlert
+                         - aiResponse
+                         - recommendation
 ```
 
-### Konversi Harga Emas
-
-```
-USD/oz → IDR/gram
-
-IDR per gram = (USD per oz / 31.1035) × USD_TO_IDR
-Hasil dibulatkan ke kelipatan 1.000
-```
-
-**Contoh:**
-- Harga emas: $3,200 USD/oz
-- Kurs: Rp 16,500
-- Perhitungan: `(3200 / 31.1035) × 16500` ≈ **Rp 1.697.000/gram**
+Tidak ada lagi konversi `USD/oz -> IDR/gram`. Harga dari API sudah IDR-native.
 
 ---
 
-## API Endpoint
+## API Internal
 
 ### `POST /api/analyze`
 
-Menerima data tujuan investasi dan mengembalikan analisis lengkap.
+Menerima target pengguna dan mengembalikan analisis lengkap.
 
-**Request Body:**
+Request:
 
 ```json
 {
   "goal": {
-    "goalName": "nikah",
-    "targetGrams": 40,
-    "currentGrams": 2,
-    "monthlyBudget": 5000000,
-    "deadline": "2028-01"
+    "goalName": "darurat",
+    "targetGrams": 10,
+    "currentGrams": 5,
+    "monthlyBudget": 3000000,
+    "deadline": "2028-10"
   }
 }
 ```
 
-**Response:**
+Response ringkas:
 
 ```json
 {
   "goldData": {
-    "currentPrice": 4685.66,
-    "changePercent7d": 2.57,
-    "trend": "up",
-    "priceZone": "mid",
-    "historicalPrices": [...],
-    "source": "live"
+    "currentPrice": 2839000,
+    "buybackPrice": 2640270,
+    "spread": 198730,
+    "spreadPercent": 7,
+    "changePercent7d": 0,
+    "changePercent30d": 0,
+    "trend": "sideways",
+    "priceZone": "low",
+    "historicalPrices": [
+      { "date": "2026-05-13", "price": 2839000 }
+    ],
+    "source": "logammulia"
   },
-  "currentPriceIdrPerGram": 2488000,
+  "currentPriceIdrPerGram": 2839000,
   "progress": {
-    "monthsLeft": 20,
-    "gramsNeeded": 38,
-    "budgetCanBuy": 2.01,
+    "monthsLeft": 29,
+    "gramsNeeded": 5,
+    "gramsPerMonth": 0.17,
+    "budgetCanBuy": 1.06,
     "isOnTrack": true,
-    "estimatedAchieveDate": "Januari 2028"
+    "estimatedAchieveDate": "Agustus 2027"
   },
   "aiResponse": "👋 Halo! ...",
   "recommendation": "HOLD",
-  "timestamp": "2026-05-11T00:23:58.256Z"
+  "timestamp": "2026-05-13T13:45:31.000Z"
 }
 ```
 
 ---
 
-## Komponen UI
+## UX Terbaru
 
-| Komponen | Deskripsi |
-|---|---|
-| **GoalForm** | Form input: tujuan (nikah, rumah, pendidikan, darurat, lainnya), target gram, tabungan saat ini, budget bulanan, deadline |
-| **GoldDashboard** | Menampilkan harga emas IDR/gram hari ini, persen perubahan 7 hari, dan chart historis |
-| **GoldChart** | Line chart Recharts dengan konversi data historis ke IDR/gram |
-| **ProgressTracker** | Progress bar, statistik progres (gram per bulan, estimasi tercapai, on-track status) |
-| **MasEmasCard** | Card analisis AI dengan section parsing (Analisis Pasar, Progres Tabungan, Rekomendasi, Risiko & Tips) |
+Setelah user submit goal, hasil ditampilkan dengan pola hybrid:
+
+1. **Quick Decision Card**
+   - Rekomendasi utama.
+   - Harga sekarang.
+   - Trigger harga beli.
+   - Alasan singkat yang actionable.
+
+2. **Summary Dashboard**
+   - GoldDashboard: harga, buyback, spread, chart.
+   - ProgressTracker: target, sisa gram, budget dapat beli, status on-track.
+
+3. **Sticky Tabs Mobile-first**
+   - `Analisis`: hasil Gemini AI.
+   - `DCA`: simulasi investasi rutin.
+   - `Share`: preview dan tombol bagikan.
+
+Pendekatan ini mencegah mobile page menjadi terlalu panjang, tetapi tetap menampilkan ringkasan penting di awal.
 
 ---
 
 ## Logic & Kalkulasi
 
-### Progres Tabungan
+### Progress Target
 
 ```typescript
-monthsLeft     = (targetYear - currentYear) × 12 + (targetMonth - currentMonth)
+monthsLeft     = (targetYear - currentYear) * 12 + (targetMonth - currentMonth)
 gramsNeeded    = max(0, targetGrams - currentGrams)
 gramsPerMonth  = gramsNeeded / monthsLeft
 budgetCanBuy   = monthlyBudget / currentPriceIdrPerGram
@@ -225,36 +348,85 @@ isOnTrack      = budgetCanBuy >= gramsPerMonth
 shortfall      = max(0, gramsPerMonth - budgetCanBuy)
 ```
 
-### Rekomendasi AI Fallback
+### Spread
 
-Jika Gemini tidak tersedia, sistem menggunakan template lokal:
+```typescript
+spread        = sellPrice - buybackPrice
+spreadPercent = (spread / sellPrice) * 100
+```
 
-| Kondisi | Rekomendasi |
-|---|---|
-| `priceZone === "low"` & tidak on-track | **BUY** |
-| `priceZone === "high"` & `changePercent7d > 2%` | **SELL** |
-| Lainnya | **HOLD** |
+Jika API mengembalikan `buybackPrice = 0`, app mengestimasi buyback sebagai `sellPrice * 0.93` untuk kebutuhan visual spread. Ini perlu diganti jika API sudah menyediakan buyback real.
+
+### DCA Simulator
+
+```typescript
+monthlyGrowth = annualGrowth / 100 / 12
+priceMonthN   = currentPrice * (1 + monthlyGrowth) ** month
+gramsBought   = monthlyBudget / priceMonthN
+totalGrams    = sum(gramsBought)
+estimatedValue = totalGrams * finalPrice
+```
+
+Simulasi DCA bukan prediksi pasti. Ini hanya alat eksplorasi skenario.
 
 ---
 
-## AI Integration (Gemini)
+## Gemini AI
 
 ### Model
 
-Default: `gemini-2.5-flash-lite` (dapat di-overwrite via env `AI_MODEL`)
+Default:
 
-### Fitur
+```txt
+gemini-2.5-flash-lite
+```
 
-- **Google Search Grounding** – AI mencari data pasar & berita terkini via Google Search tool (best-effort, fallback otomatis kalau gagal)
-- **Prompt Engineering** – System prompt terstruktur dengan section emoji, instruksi format, dan larangan markdown
-- **Response Validation** – Validasi ketat: panjang minimal, section lengkap, rekomendasi valid, kalimat terakhir selesai
-- **Debug Logging** – Log model, finishReason, safety ratings, dan preview response ke console
+Bisa diganti via:
+
+```env
+AI_MODEL=gemini-2.5-flash-lite
+```
+
+### Behavior Prompt
+
+Gemini dipaksa memberi analisis yang lebih decisif, bukan sekadar informatif.
+
+Prompt wajib meminta AI menyebut:
+
+1. Harga sekarang vs rata-rata 7 hari dalam Rupiah dan persen.
+2. Harga sekarang vs rata-rata 30 hari.
+3. Posisi terhadap high/low 30 hari.
+4. Harga ideal untuk beli ringan.
+5. Harga beli agresif.
+6. Selisih gram jika beli sekarang vs tunggu harga ideal.
+7. Kalimat keputusan blunt, misalnya: “Dengan kondisi ini, tunggu dip lebih masuk akal karena ...”.
+8. Trigger aksi konkret, misalnya: “Tambah beli jika turun ke RpX/gram”.
+
+Aturan keras:
+
+```txt
+Jangan rekomendasikan BUY jika harga sekarang >5% di atas rata-rata 7 hari.
+```
+
+Jika Gemini tetap mengeluarkan `BUY` saat harga >5% di atas rata-rata 7 hari, response ditolak dan sistem fallback ke template lokal.
+
+### Fallback Recommendation
+
+Jika Gemini tidak tersedia, sistem memakai template lokal:
+
+| Kondisi | Rekomendasi |
+|---|---|
+| Harga >5% di atas rata-rata 7 hari | **HOLD** |
+| `priceZone === "low"` atau harga <2% di bawah rata-rata 7 hari | **BUY** |
+| Harga tinggi dan user on-track | **HOLD** |
+| User tidak on-track dan harga tidak mahal | **BUY** |
+| Lainnya | **HOLD** |
 
 ### Fallback Chain
 
-```
-1. Gemini with grounding    → kalau gagal →
-2. Gemini without grounding → kalau gagal →
+```txt
+1. Gemini with Google Search grounding
+2. Gemini without grounding
 3. Template fallback lokal
 ```
 
@@ -262,30 +434,42 @@ Default: `gemini-2.5-flash-lite` (dapat di-overwrite via env `AI_MODEL`)
 
 ## Troubleshooting
 
-### Harga emas menunjukkan "Data Mock"
+### `[emas-api] SELF_HOSTED_API_KEY not set`
 
-- **Penyebab:** GoldAPI key tidak valid atau rate limit tercapai (10 req/hari di free tier)
-- **Solusi:** Cek `GOLDAPI_KEY` di `.env`, atau tunggu reset rate limit
+- **Penyebab:** `.env` belum berisi `SELF_HOSTED_API_KEY`.
+- **Solusi:** Isi token API di `.env`, lalu restart dev server.
 
-### AI selalu menunjukkan fallback/template
+### `[emas-api] HTTP 401 from logammulia`
 
-- **Penyebab:** Gemini API key tidak valid, model tidak tersedia, atau response AI terpotong
-- **Solusi:**
-  1. Cek `GEMINI_API_KEY` di `.env`
-  2. Cek console log `[Gemini]` untuk error detail
-  3. Ganti `AI_MODEL` ke model yang tersedia di project Anda
+- **Penyebab:** token salah atau header `x-api-key` ditolak.
+- **Solusi:** Pastikan `SELF_HOSTED_API_KEY` valid.
 
-### Chart tidak tampil / error `width(-1) height(-1)`
+### History cuma satu tanggal
 
-- **Solusi:** Sudah di-fix dengan `minHeight` dan `minWidth` di container. Kalau masih terjadi, refresh halaman.
+- **Penyebab:** database API baru punya snapshot satu hari.
+- **Solusi:** aktifkan cron/scheduler harian atau backfill data historis.
 
-### TypeScript compile error
+### Chart tidak tampil / cuma satu titik
 
-```bash
-npx tsc --noEmit
-```
+- **Penyebab:** `historicalPrices` kosong atau hanya punya satu `recordedDate`.
+- **Solusi:** tunggu data historis terkumpul. App tetap menampilkan current price dengan aman.
 
-Periksa apakah ada type mismatch setelah update dependency.
+### Harga terlihat terlalu rendah
+
+- **Penyebab umum:** API Logam Mulia punya duplicate `weight=1`; beberapa row bisa tampak seperti pecahan tetapi terlabel 1 gram.
+- **Solusi app:** normalizer memilih canonical `Emas Batangan` dengan harga per gram tertinggi untuk duplicate 1 gram.
+
+### AI selalu fallback/template
+
+- **Penyebab:** `GEMINI_API_KEY` kosong, model tidak tersedia, safety stop, atau response tidak lengkap.
+- **Solusi:** cek log `[Gemini]`, isi `GEMINI_API_KEY`, atau ganti `AI_MODEL`.
+
+### Warning Next.js multiple lockfiles
+
+Build bisa tetap sukses, tetapi Next.js mungkin salah infer workspace root. Solusi opsional:
+
+- hapus lockfile parent yang tidak dipakai, atau
+- set `turbopack.root` di `next.config.ts`.
 
 ---
 
@@ -293,26 +477,41 @@ Periksa apakah ada type mismatch setelah update dependency.
 
 ### Next.js v16 Breaking Changes
 
-Project ini menggunakan Next.js 16 yang memiliki breaking changes dari versi sebelumnya. Sebelum menulis kode baru:
+Sebelum mengubah route, page, atau data fetching:
 
-1. Baca guide di `node_modules/next/dist/docs/`
-2. Perhatikan deprecation notices
-3. Jangan asumsikan API dari Next.js v14/v15 masih sama
+1. Baca guide di `node_modules/next/dist/docs/`.
+2. Perhatikan deprecation notices.
+3. Jangan asumsikan API Next.js v14/v15 masih sama.
+
+### Security
+
+- Jangan commit `.env`.
+- `.env.example` boleh di-commit.
+- `SELF_HOSTED_API_KEY` tidak boleh dipakai di client component.
+- Jangan expose `refresh=true` ke browser karena bisa memaksa scrape dan membebani API.
+
+### Build
+
+```bash
+npm run build
+```
+
+Jika `npm` memakai Node lama, gunakan PATH Node 20+ atau Node 22.
 
 ### Git Best Practices
 
-- Jangan commit file `.env` (sudah di `.gitignore`)
-- Split commit per concern (fitur, fix, chore)
+- Split commit per concern.
 - Contoh pesan commit:
-  - `feat: pipe IDR-converted gold price through API response`
-  - `fix: improve gold API data integrity and handle weekends`
-  - `chore: clean up debug logs and fix parseInt radix`
+  - `feat: migrate gold prices to self-hosted API`
+  - `feat: add decisive Gemini recommendation prompt`
+  - `feat: add DCA and share result tabs`
+  - `fix: normalize Logam Mulia duplicate one-gram rows`
 
 ---
 
 ## Lisensi
 
-Private – Dibuat dengan ❤️ untuk investor emas Indonesia.
+Private – Dibuat untuk investor emas Indonesia.
 
 ---
 
