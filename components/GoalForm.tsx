@@ -52,6 +52,7 @@ const INITIAL_FORM_STATE: FormState = {
 export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
 
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Restore dari localStorage setelah hydration selesai
   useEffect(() => {
@@ -77,23 +78,24 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   }, []);
 
   const handleSubmit = () => {
+    setFormError(null);
 
     const targetGramsNum = parseFloat(form.targetGrams) || 0;
     const currentGramsNum = parseFloat(form.currentGrams) || 0;
     const monthlyBudgetNum = parseRupiah(form.monthlyBudget);
 
     if (!targetGramsNum || targetGramsNum <= 0) {
-      alert("Target emas harus lebih dari 0 gram");
+      setFormError("Target emas harus lebih dari 0 gram.");
       return;
     }
 
     if (monthlyBudgetNum <= 0) {
-      alert("Budget bulanan harus lebih dari 0");
+      setFormError("Budget bulanan harus lebih dari 0.");
       return;
     }
 
     if (!form.deadlineMonth || !form.deadlineYear) {
-      alert("Silakan pilih bulan dan tahun target");
+      setFormError("Silakan pilih bulan dan tahun target.");
       return;
     }
 
@@ -104,7 +106,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
     const now = new Date();
     const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     if (deadline < currentYearMonth) {
-      alert("Tanggal target tidak boleh di masa lalu");
+      setFormError("Tanggal target tidak boleh di masa lalu.");
       return;
     }
 
@@ -141,6 +143,12 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
       </div>
 
       <div className="space-y-4">
+        {formError && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            {formError}
+          </div>
+        )}
+
         <div>
           <label htmlFor="goalName" className="block text-sm font-medium mb-2">
             Tujuan Investasi
