@@ -31,11 +31,14 @@ function buildSystemPrompt(
   const diffFromAvg7d = avg7d > 0 ? ((priceIdrPerGram - avg7d) / avg7d) * 100 : 0;
   const diffFromAvg30d = avg30d > 0 ? ((priceIdrPerGram - avg30d) / avg30d) * 100 : 0;
   const diffFromHigh30d = high30d > 0 ? ((high30d - priceIdrPerGram) / high30d) * 100 : 0;
+  const diffFromLow30d = low30d > 0 ? ((priceIdrPerGram - low30d) / low30d) * 100 : 0;
   const idealBuyPrice = Math.round(avg7d * 0.99);
   const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
   const lowZoneMax = Math.round(low30d + (high30d - low30d) * 0.33);
   const highZoneMin = Math.round(low30d + (high30d - low30d) * 0.66);
+  const additionalBuyTrigger = Math.min(idealBuyPrice, lowZoneMax);
   const zoneMethodText = `Zona harga dihitung dari rentang low-high 30 hari: low Rp${low30d.toLocaleString("id-ID")}, high Rp${high30d.toLocaleString("id-ID")}, lalu dibagi tiga bagian sama lebar; zona menengah berada di Rp${lowZoneMax.toLocaleString("id-ID")} - Rp${highZoneMin.toLocaleString("id-ID")}.`;
+  const lowHighPositionText = `Harga sekarang Rp${priceIdrPerGram.toLocaleString("id-ID")}/gram berada ${diffFromLow30d.toFixed(2)}% di atas low 30 hari dan ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari.`;
   const avg7dRelationText = Math.abs(diffFromAvg7d) <= 0.05
     ? `berada tepat di sekitar rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram`
     : `${diffFromAvg7d > 0 ? "berada di atas" : "berada di bawah"} rata-rata 7 hari Rp${avg7d.toLocaleString("id-ID")}/gram sebesar ${Math.abs(diffFromAvg7d).toFixed(2)}%`;
@@ -63,6 +66,7 @@ Data pasar emas lokal Indonesia:
 - Rata-rata 30 hari: Rp${avg30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromAvg30d >= 0 ? "+" : ""}${diffFromAvg30d.toFixed(2)}% dari rata-rata 30 hari
 - High 30 hari: Rp${high30d.toLocaleString("id-ID")}/gram; harga sekarang ${diffFromHigh30d.toFixed(2)}% di bawah high 30 hari
 - Low 30 hari: Rp${low30d.toLocaleString("id-ID")}/gram
+- Frasa wajib posisi high-low 30 hari: ${lowHighPositionText}
 - Batas zona 30 hari: rendah <= Rp${lowZoneMax.toLocaleString("id-ID")}, menengah Rp${lowZoneMax.toLocaleString("id-ID")} - Rp${highZoneMin.toLocaleString("id-ID")}, tinggi >= Rp${highZoneMin.toLocaleString("id-ID")}
 - Metodologi zona: rentang low-high 30 hari dibagi menjadi 3 bagian sama lebar; sepertiga bawah=rendah, sepertiga tengah=menengah, sepertiga atas=tinggi
 - Kalimat wajib metodologi zona: ${zoneMethodText}
@@ -72,6 +76,7 @@ Data pasar emas lokal Indonesia:
 - Zona harga: ${goldData.priceZone === "low" ? "rendah" : goldData.priceZone === "high" ? "tinggi" : "menengah"}
 - Harga ideal beli ringan: di bawah Rp${idealBuyPrice.toLocaleString("id-ID")}/gram
 - Harga beli agresif: di bawah Rp${strongBuyPrice.toLocaleString("id-ID")}/gram
+- Trigger BUY tambahan utama: Rp${additionalBuyTrigger.toLocaleString("id-ID")}/gram, yaitu batas yang lebih konservatif antara harga ideal beli ringan dan batas bawah zona menengah
 - Relasi harga terhadap ideal: harga sekarang ${isAboveIdealBuyPrice ? "DI ATAS" : "DI BAWAH ATAU SAMA DENGAN"} harga ideal beli ringan sebesar ${Math.abs(priceIdrPerGram - idealBuyPrice).toLocaleString("id-ID")} Rupiah
 
 Target pengguna:
@@ -84,7 +89,7 @@ Target pengguna:
 - Jika beli di harga ideal Rp${idealBuyPrice.toLocaleString("id-ID")}: ~${canBuyAtIdeal.toFixed(2)} gram/bulan, selisih ${(canBuyAtIdeal - progress.budgetCanBuy).toFixed(2)} gram dari beli sekarang
 - Deadline: ${goal.deadlineLabel || goal.deadline}
 - Sisa waktu: ${progress.monthsLeft} bulan
-- Perkiraan tercapai: ${progress.estimatedAchieveDate}
+- Perkiraan tercapai dari kalkulasi sistem: ${progress.estimatedAchieveDate}
 - On track: ${progress.isOnTrack ? "Ya" : "Tidak"}
 - Status jadwal: ${scheduleStatus}; estimasi butuh sekitar ${Number.isFinite(monthsToFinish) ? monthsToFinish.toFixed(1) : "tidak terhingga"} bulan untuk menyelesaikan target
 
@@ -110,6 +115,7 @@ INSTRUKSI FORMAT (wajib):
 4. WAJIB bersikap decisif, bukan sekadar informatif. Sertakan angka konkret berikut:
    - Harga sekarang vs rata-rata 7 hari dalam Rupiah dan persen.
    - Posisi harga terhadap high/low 30 hari.
+   - Untuk posisi terhadap high/low 30 hari, gunakan Frasa wajib posisi high-low 30 hari. Jangan hitung ulang persentasenya sendiri.
    - Definisi zona harga menggunakan Batas zona 30 hari. Jangan hanya bilang "zona menengah" tanpa menjelaskan range-nya.
    - Jika BUY: sebutkan maksimal harga yang masih layak dibeli dan nominal tambahan yang masuk akal.
    - Jika HOLD: sebutkan trigger jelas kapan berubah jadi BUY, misalnya "beli kalau turun ke RpX".
@@ -119,6 +125,9 @@ INSTRUKSI FORMAT (wajib):
    - Untuk membahas rata-rata 7 hari, gunakan Frasa wajib rata-rata 7 hari secara persis atau sangat dekat. Jangan menulis klaim arah yang bertentangan dengan frasa itu.
    - Jangan menyebut "tren naik" atau "tren turun" tanpa timeframe. Gunakan "tren 7 hari naik/turun" dan "tren 30 hari naik/turun" secara eksplisit jika keduanya berbeda.
    - Saat menyebut zona harga, WAJIB sertakan Kalimat wajib metodologi zona atau versi ringkas yang tetap menyebut low, high, dan pembagian tiga bagian sama lebar. Jangan hanya menulis range zona tanpa basis perhitungan.
+   - Jika menyebut "harga ideal beli ringan", wajib sebutkan angka Rp${idealBuyPrice.toLocaleString("id-ID")}. Jika memakai trigger zona, sebutkan angka Rp${lowZoneMax.toLocaleString("id-ID")} dan jangan mencampuradukkan keduanya.
+   - Untuk tanggal target tercapai, WAJIB gunakan persis "${progress.estimatedAchieveDate}" dari Perkiraan tercapai kalkulasi sistem. Jangan membuat bulan/tahun estimasi sendiri.
+   - Jika menyebut dua referensi harga, jelaskan perannya: harga ideal beli ringan Rp${idealBuyPrice.toLocaleString("id-ID")} berasal dari 1% di bawah rata-rata 7 hari, sedangkan trigger BUY tambahan utama Rp${additionalBuyTrigger.toLocaleString("id-ID")} adalah batas yang lebih konservatif untuk tambah pembelian agresif.
    - Jangan pernah menulis bahwa harga sekarang "di bawah harga ideal" jika data Relasi harga terhadap ideal menyatakan DI ATAS.
    - Jangan rekomendasikan BUY agresif jika harga sekarang DI ATAS harga ideal beli ringan dan pengguna sudah on track. Pilih HOLD, artinya lanjut DCA rutin tapi jangan tambah pembelian ekstra.
    - Jangan rekomendasikan BUY jika harga sekarang lebih dari 5% di atas rata-rata 7 hari. Dalam kondisi itu pilih HOLD, kecuali pengguna sangat tidak on-track dan harus DCA minimum.
@@ -201,6 +210,7 @@ function getDecisionMetrics(goldData: GoldData, monthlyBudget: number) {
   const diffFromAvg7d = avg7d > 0 ? ((currentPrice - avg7d) / avg7d) * 100 : 0;
   const diffFromAvg30d = avg30d > 0 ? ((currentPrice - avg30d) / avg30d) * 100 : 0;
   const diffFromHigh30d = high30d > 0 ? ((high30d - currentPrice) / high30d) * 100 : 0;
+  const diffFromLow30d = low30d > 0 ? ((currentPrice - low30d) / low30d) * 100 : 0;
   const idealBuyPrice = Math.round(avg7d * 0.99);
   const strongBuyPrice = Math.round(Math.min(avg7d * 0.97, low30d * 1.02));
 
@@ -213,6 +223,7 @@ function getDecisionMetrics(goldData: GoldData, monthlyBudget: number) {
     diffFromAvg7d,
     diffFromAvg30d,
     diffFromHigh30d,
+    diffFromLow30d,
     idealBuyPrice,
     strongBuyPrice,
     gramsAtIdeal: monthlyBudget / idealBuyPrice,
@@ -372,6 +383,18 @@ export async function generateAnalysis(
       if (/zona\s+(harga\s+)?(menengah|rendah|tinggi)/i.test(text) && !/(dibagi\s+tiga|sepertiga|low-high\s+30\s+hari|low\s+.*high)/i.test(text)) {
         console.warn("[Gemini] Rejected response because it mentioned price zone without methodology");
         return null;
+      }
+      if (!text.includes(progress.estimatedAchieveDate)) {
+        console.warn("[Gemini] Rejected response because it did not use the system-calculated achievement date");
+        return null;
+      }
+      const lowMatch = text.match(/(\d+(?:[,.]\d+)?)\s*%\s+di\s+atas\s+low\s+30\s+hari/i);
+      if (lowMatch) {
+        const mentionedLowPercent = Number(lowMatch[1].replace(",", "."));
+        if (Number.isFinite(mentionedLowPercent) && Math.abs(mentionedLowPercent - metrics.diffFromLow30d) > 0.2) {
+          console.warn("[Gemini] Rejected response because low 30-day percentage is inconsistent with computed data");
+          return null;
+        }
       }
 
       console.log(`[Gemini] Success: recommendation=${recommendation}, length=${text.length}`);
