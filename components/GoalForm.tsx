@@ -132,14 +132,35 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear + i);
 
   return (
-    <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
-      <div>
+    <div className="glass-card overflow-hidden rounded-[2rem] bg-gradient-to-br from-white/[0.065] via-white/[0.028] to-gold/[0.05] p-5 sm:p-6 md:p-8 space-y-6">
+      <div className="ambient-glow absolute -left-16 -top-16 h-40 w-40 rounded-full bg-gold/10 blur-3xl" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-gold/20 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.8)]" />
+            Siap analisis targetmu
+          </div>
         <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair)" }}>
           Rencanakan Investasi Emas Anda
         </h2>
         <p className="text-sm text-gray-400">
           Isi detail tujuan investasi Anda untuk mendapatkan rekomendasi dari AI
         </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-400 md:min-w-[260px]">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <p className="text-gold">01</p>
+            <p>Target</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <p className="text-gold">02</p>
+            <p>Harga</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <p className="text-gold">03</p>
+            <p>Aksi</p>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">

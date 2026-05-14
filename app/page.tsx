@@ -43,29 +43,45 @@ function QuickDecisionCard({ result, goal }: { result: AnalysisResult; goal: Use
     : isSell
       ? "border-red-500/30 bg-red-500/10 text-red-400"
       : "border-yellow-500/30 bg-yellow-500/10 text-yellow-400";
+  const ringClass = isBuy
+    ? "from-green-400 via-emerald-500 to-gold"
+    : isSell
+      ? "from-red-400 via-orange-500 to-gold"
+      : "from-yellow-300 via-gold to-orange-500";
 
   return (
-    <div className="glass-card overflow-hidden rounded-3xl border border-gold/25 bg-gradient-to-br from-gold/[0.12] via-white/[0.05] to-white/[0.03] p-5 sm:p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
+    <div className="glass-card overflow-hidden rounded-[2rem] border border-gold/30 bg-gradient-to-br from-gold/[0.16] via-white/[0.055] to-black/20 p-5 shadow-2xl shadow-gold/5 sm:p-7">
+      <div className="ambient-glow absolute -right-28 -top-28 h-64 w-64 rounded-full bg-gold/20 blur-3xl" />
+      <div className="ambient-glow absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-yellow-500/10 blur-3xl" />
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="max-w-2xl space-y-3">
           <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-bold ${badgeClass}`}>
             <span>{isBuy ? "✅" : isSell ? "⚠️" : "⏳"}</span>
             REKOMENDASI: {result.recommendation}
           </div>
-          <h2 className="text-2xl font-bold text-white sm:text-3xl" style={{ fontFamily: "var(--font-playfair)" }}>
+          <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl" style={{ fontFamily: "var(--font-playfair)" }}>
             {headline}
           </h2>
-          <p className="max-w-2xl text-sm leading-relaxed text-gray-300 sm:text-base">{reason}</p>
+          <p className="text-sm leading-relaxed text-gray-300 sm:text-base">{reason}</p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 md:min-w-[360px]">
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="grid gap-4 sm:grid-cols-[150px_1fr] md:min-w-[440px]">
+          <div className={`relative mx-auto flex h-36 w-36 items-center justify-center rounded-full bg-gradient-to-br ${ringClass} p-1 shadow-2xl shadow-gold/20`}>
+            <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[#111116] text-center">
+              <p className="text-xs text-gray-400">Status</p>
+              <p className="text-2xl font-black text-gold">{result.recommendation}</p>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-gray-500">Decision</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4 shadow-inner shadow-black/20">
             <p className="text-xs text-gray-400">Harga sekarang</p>
             <p className="mt-1 text-lg font-bold text-gold">{formatRupiah(result.currentPriceIdrPerGram)}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+          <div className="rounded-2xl border border-white/10 bg-black/25 p-4 shadow-inner shadow-black/20">
             <p className="text-xs text-gray-400">Trigger beli</p>
             <p className="mt-1 text-lg font-bold text-white">{formatRupiah(triggerPrice)}</p>
+          </div>
           </div>
         </div>
       </div>
@@ -121,7 +137,20 @@ export default function Home() {
       <AnalyzingOverlay isOpen={isLoading} />
       <main className="container mx-auto max-w-7xl px-4 py-7 sm:px-6 md:py-12 relative z-10">
         {/* Hero Section */}
-        <div className="text-center mb-10 md:mb-16">
+        <div className="relative mb-10 overflow-hidden rounded-[2rem] border border-gold/15 bg-gradient-to-br from-white/[0.06] via-white/[0.025] to-gold/[0.06] px-5 py-10 text-center shadow-2xl shadow-black/20 md:mb-12 md:px-10 md:py-14">
+          <div className="ambient-glow absolute left-1/2 top-0 h-44 w-44 -translate-x-1/2 rounded-full bg-gold/20 blur-3xl" />
+          <div className="ambient-glow animate-soft-float absolute left-6 top-8 hidden rounded-2xl border border-gold/20 bg-black/25 px-4 py-3 text-left shadow-xl md:block">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">Live Price</p>
+            <p className="text-sm font-semibold text-gold">Logam Mulia IDR</p>
+          </div>
+          <div className="ambient-glow animate-soft-float absolute bottom-8 right-6 hidden rounded-2xl border border-green-500/20 bg-green-500/10 px-4 py-3 text-left shadow-xl [animation-delay:1.2s] md:block">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-gray-500">AI Decision</p>
+            <p className="text-sm font-semibold text-green-400">BUY • HOLD • SELL</p>
+          </div>
+          <div className="relative mx-auto mb-4 inline-flex overflow-hidden rounded-full border border-gold/20 bg-gold/10 px-4 py-2 text-xs font-semibold text-gold">
+            <span className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-shimmer-line" />
+            <span className="relative">Emas lokal • DCA • Gemini AI</span>
+          </div>
           <h1 
             className="gold-text text-5xl sm:text-6xl md:text-7xl font-bold mb-4 tracking-tight leading-tight"
             style={{ fontFamily: "var(--font-playfair)" }}
@@ -131,6 +160,11 @@ export default function Home() {
           <p className="text-base sm:text-lg md:text-xl text-gray-300/85 max-w-2xl mx-auto leading-relaxed">
             Kalkulator investasi emas cerdas dengan analisis AI untuk membantu Anda mencapai tujuan finansial
           </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs text-gray-400">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Trigger harga beli</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Simulasi DCA</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">Share card</span>
+          </div>
         </div>
 
         {/* Error Banner */}
