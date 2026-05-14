@@ -29,7 +29,7 @@ function formatTimestamp(timestamp: string): string {
 }
 
 export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: GoldDashboardProps) {
-  const changePercent = goldData.changePercent7d;
+  const changePercent = goldData.changePercent30d;
   const isPositive = changePercent >= 0;
   const displayPrice = typeof currentPriceIdrPerGram === "number" && currentPriceIdrPerGram > 0
     ? currentPriceIdrPerGram
@@ -52,7 +52,7 @@ export default function GoldDashboard({ goldData, currentPriceIdrPerGram }: Gold
             <span>{isPositive ? "↑" : "↓"}</span>
             <span>{Math.abs(changePercent).toFixed(2)}%</span>
           </div>
-          <p className="text-xs text-gray-500 mt-2">7 hari</p>
+          <p className="text-xs text-gray-500 mt-2">30 hari</p>
         </div>
       </div>
 

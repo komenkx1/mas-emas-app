@@ -15,37 +15,20 @@ const STEPS = [
   "Menyiapkan hasil analisis...",
 ];
 
-const DURATION_MS = 5000;
-const STEP_DURATION = DURATION_MS / STEPS.length;
+const STEP_INTERVAL_MS = 2000;
 
 export default function AnalyzingOverlay({ isOpen }: AnalyzingOverlayProps) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     if (!isOpen) {
       setStepIndex(0);
-      setProgress(0);
       return;
     }
 
-    const startTime = Date.now();
-
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const rawProgress = Math.min(elapsed / DURATION_MS, 1);
-
-      // Ease-out curve: fast start, slow end
-      const eased = 1 - Math.pow(1 - rawProgress, 1.8);
-      setProgress(eased);
-
-      const rawIndex = Math.floor((elapsed / DURATION_MS) * STEPS.length);
-      setStepIndex(Math.min(rawIndex, STEPS.length - 1));
-
-      if (rawProgress >= 1) {
-        clearInterval(interval);
-      }
-    }, 60);
+      setStepIndex((prev) => (prev + 1) % STEPS.length);
+    }, STEP_INTERVAL_MS);
 
     return () => clearInterval(interval);
   }, [isOpen]);
@@ -83,12 +66,9 @@ export default function AnalyzingOverlay({ isOpen }: AnalyzingOverlayProps) {
               </div>
             </div>
 
+            {/* Indeterminate progress bar */}
             <div className="mb-4 h-2 overflow-hidden rounded-full bg-white/10">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light"
-                style={{ width: `${progress * 100}%` }}
-                transition={{ duration: 0.1 }}
-              />
+              <div className="h-full w-full animate-indeterminate rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light" />
             </div>
 
             <div className="h-10">
@@ -122,7 +102,6 @@ export default function AnalyzingOverlay({ isOpen }: AnalyzingOverlayProps) {
                 transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
                 className="h-1.5 w-1.5 rounded-full bg-gold"
               />
-              <span className="ml-2 text-xs text-gray-500">{Math.round(progress * 100)}%</span>
             </div>
           </motion.div>
         </motion.div>

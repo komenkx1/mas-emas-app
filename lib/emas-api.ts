@@ -95,12 +95,18 @@ function normalizeGoldPrices(records: PriceRecord[], source: string): Normalized
   });
   const candidates = standardRows.length > 0 ? standardRows : filtered;
 
-  // Logam Mulia can return duplicate 1gr rows where the first row is actually
-  // a smaller denomination scraped as 1gr. For duplicate 1gr standard rows,
-  // choose the highest sell price as the canonical 1gr product.
-  const oneGramRows = candidates.filter((r) => r.weight === 1);
-  let best = oneGramRows.length > 0 ? oneGramRows[0] : candidates[0];
+  // Logam Mulia's canonical 1 gram Antam row is lineKey gold-2-tr4. Some
+  // history rows include a 0.5g product or duplicate 1g row, so prefer the
+  // stable product key before using weight/material fallbacks.
+  let best = candidates.find((r) => r.lineKey === "gold-2-tr4");
+
+  const oneGramRows = candidates.filter((r) => r.weight === 1 && r.materialType.toLowerCase() === "emas batangan");
+  if (!best) {
+    best = oneGramRows.length > 0 ? oneGramRows[0] : candidates[0];
+  }
+
   for (const row of oneGramRows.length > 0 ? oneGramRows : candidates) {
+    if (best.lineKey === "gold-2-tr4") break;
     const bestPerGram = best.sellPrice / (best.weight || 1);
     const rowPerGram = row.sellPrice / (row.weight || 1);
     if (rowPerGram > bestPerGram) {
@@ -220,7 +226,10 @@ export async function fetchHistoryPrices(
   try {
     // Fetch raw rows and normalize locally. Logam Mulia uses materialType values
     // like "Emas Batangan", so filtering by "antam" would drop valid history.
-    const historyLength = Math.min(Math.max(days * 30, days), 1000);
+    // The API returns all product variants per day (~23 rows/day). Fetch enough
+    // raw rows to cover the requested date range before grouping by date.
+    const estimatedRowsPerDay = 24;
+    const historyLength = Math.min(Math.max(days * estimatedRowsPerDay, 50), 1000);
     const url = `${API_BASE_URL}/prices/${source}/history?page=1&length=${historyLength}`;
     const res = await fetchWithTimeout(
       url,

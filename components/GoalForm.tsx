@@ -133,7 +133,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
     <div className="glass-card rounded-2xl p-5 sm:p-6 md:p-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair)" }}>
-          Rencanakan Investasi Emas Andas
+          Rencanakan Investasi Emas Anda
         </h2>
         <p className="text-sm text-gray-400">
           Isi detail tujuan investasi Anda untuk mendapatkan rekomendasi dari AI

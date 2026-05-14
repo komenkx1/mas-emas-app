@@ -65,6 +65,22 @@ body::before {
   outline-offset: 3px;
 }
 
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-indeterminate {
+  animation: indeterminate 1.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

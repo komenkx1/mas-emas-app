@@ -30,22 +30,28 @@ export default function DCASimulator({ currentPrice, monthlyBudget }: DCASimulat
 
   const simulation = useMemo(() => {
     const monthlyGrowth = annualGrowth / 100 / 12;
+    const monthlyVolatility = 0.03; // ±3% random volatility
     let totalGrams = 0;
     const points: { month: number; grams: number; invested: number; price: number }[] = [];
 
     for (let month = 1; month <= months; month += 1) {
-      const priceThisMonth = currentPrice * Math.pow(1 + monthlyGrowth, month - 1);
+      // Base price with trend growth
+      const basePrice = currentPrice * Math.pow(1 + monthlyGrowth, month - 1);
+      // Add random volatility (±3% around trend)
+      const randomFactor = 1 + (Math.random() * 2 - 1) * monthlyVolatility;
+      const priceThisMonth = basePrice * randomFactor;
+      
       totalGrams += amount / priceThisMonth;
       points.push({ month, grams: totalGrams, invested: amount * month, price: priceThisMonth });
     }
 
-    const finalPrice = currentPrice * Math.pow(1 + monthlyGrowth, months);
     const totalInvested = amount * months;
-    const estimatedValue = totalGrams * finalPrice;
-    const gain = estimatedValue - totalInvested;
+    // Current value based on final month's price (not projected future price)
+    const currentValue = totalGrams * points[points.length - 1].price;
+    const gain = currentValue - totalInvested;
     const gainPercent = totalInvested > 0 ? (gain / totalInvested) * 100 : 0;
 
-    return { totalGrams, totalInvested, estimatedValue, gain, gainPercent, points };
+    return { totalGrams, totalInvested, estimatedValue: currentValue, gain, gainPercent, points };
   }, [amount, annualGrowth, currentPrice, months]);
 
   const maxPoint = Math.max(...simulation.points.map((p) => p.grams), 1);
@@ -169,7 +175,7 @@ export default function DCASimulator({ currentPrice, monthlyBudget }: DCASimulat
       </div>
 
       <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-gray-400">
-        Simulasi ini bukan prediksi pasti. Angka memakai asumsi kenaikan harga yang kamu pilih; untuk strategi aman, gunakan sebagai panduan DCA rutin, bukan jaminan return.
+        ⚠️ Simulasi ini menggunakan model probabilistik dengan volatilitas acuan ±3% per bulan dan asumsi pertumbuhan tahunan {annualGrowth}%. Ini bukan prediksi atau jaminan return. Harga emas berfluktuasi; keuntungan DCA datang dari membeli saat turun dan naik.
       </p>
     </div>
   );

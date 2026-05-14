@@ -11,22 +11,34 @@ export default function DipAlertBanner({ dipAlert }: DipAlertBannerProps) {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if user has dismissed this alert today
+    // Check if user has dismissed this alert recently
     try {
-      const dismissedDate = localStorage.getItem("dipAlertDismissed");
-      const today = new Date().toISOString().split("T")[0];
-      if (dismissedDate === today) {
-        setDismissed(true);
+      const dismissedData = localStorage.getItem("dipAlertDismissed");
+      if (dismissedData) {
+        const { timestamp, dipPercent: dismissedDipPercent } = JSON.parse(dismissedData);
+        const dismissedTime = new Date(timestamp).getTime();
+        const now = Date.now();
+        const thirtyMinutes = 30 * 60 * 1000;
+        
+        // Show again if:
+        // 1. More than 30 minutes have passed, OR
+        // 2. Current dip is more severe than dismissed dip
+        if (now - dismissedTime < thirtyMinutes && dipAlert.dipPercent <= dismissedDipPercent) {
+          setDismissed(true);
+        }
       }
     } catch (err) {
       console.warn("[DipAlertBanner] localStorage access failed:", err);
     }
-  }, []);
+  }, [dipAlert.dipPercent]);
 
   const handleDismiss = () => {
     try {
-      const today = new Date().toISOString().split("T")[0];
-      localStorage.setItem("dipAlertDismissed", today);
+      const dismissData = {
+        timestamp: new Date().toISOString(),
+        dipPercent: dipAlert.dipPercent,
+      };
+      localStorage.setItem("dipAlertDismissed", JSON.stringify(dismissData));
       setDismissed(true);
     } catch (err) {
       console.warn("[DipAlertBanner] localStorage write failed:", err);

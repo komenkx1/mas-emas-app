@@ -82,18 +82,66 @@ export async function getGoldData(source: string = DEFAULT_SOURCE): Promise<Gold
     const spread = current.spread;
     const spreadPercent = current.spreadPercent;
 
-    // Find prices at specific points
-    const price7dAgo = historicalPrices.length >= 7
-      ? historicalPrices[historicalPrices.length - 7]?.price ?? currentPrice
-      : historicalPrices.length > 0
-        ? historicalPrices[0]?.price ?? currentPrice
-        : currentPrice;
+    // Find prices at specific points by searching backward from most recent date
+    const mostRecentDate = historicalPrices.length > 0 
+      ? new Date(historicalPrices[historicalPrices.length - 1].date)
+      : new Date();
+    
+    // Find price approximately 7 days ago (5-9 days range)
+    let price7dAgo = currentPrice;
+    if (historicalPrices.length > 0) {
+      const target7d = new Date(mostRecentDate);
+      target7d.setDate(target7d.getDate() - 7);
+      
+      let closestRecord = historicalPrices[0];
+      let minDiff = Math.abs(new Date(closestRecord.date).getTime() - target7d.getTime());
+      
+      for (const record of historicalPrices) {
+        const recordDate = new Date(record.date);
+        const diff = Math.abs(recordDate.getTime() - target7d.getTime());
+        const daysDiff = diff / (1000 * 60 * 60 * 24);
+        
+        // Accept records within 5-9 days range
+        if (daysDiff >= 5 && daysDiff <= 9 && diff < minDiff) {
+          closestRecord = record;
+          minDiff = diff;
+        }
+      }
+      
+      // If no record in 5-9 days range, use oldest available
+      const daysDiffClosest = minDiff / (1000 * 60 * 60 * 24);
+      price7dAgo = (daysDiffClosest >= 5 && daysDiffClosest <= 9) 
+        ? closestRecord.price 
+        : historicalPrices[0].price;
+    }
 
-    const price30dAgo = historicalPrices.length >= 30
-      ? historicalPrices[0]?.price ?? currentPrice
-      : historicalPrices.length > 0
-        ? historicalPrices[0]?.price ?? currentPrice
-        : currentPrice;
+    // Find price approximately 30 days ago (25-35 days range)
+    let price30dAgo = currentPrice;
+    if (historicalPrices.length > 0) {
+      const target30d = new Date(mostRecentDate);
+      target30d.setDate(target30d.getDate() - 30);
+      
+      let closestRecord = historicalPrices[0];
+      let minDiff = Math.abs(new Date(closestRecord.date).getTime() - target30d.getTime());
+      
+      for (const record of historicalPrices) {
+        const recordDate = new Date(record.date);
+        const diff = Math.abs(recordDate.getTime() - target30d.getTime());
+        const daysDiff = diff / (1000 * 60 * 60 * 24);
+        
+        // Accept records within 25-35 days range
+        if (daysDiff >= 25 && daysDiff <= 35 && diff < minDiff) {
+          closestRecord = record;
+          minDiff = diff;
+        }
+      }
+      
+      // If no record in 25-35 days range, use oldest available
+      const daysDiffClosest = minDiff / (1000 * 60 * 60 * 24);
+      price30dAgo = (daysDiffClosest >= 25 && daysDiffClosest <= 35) 
+        ? closestRecord.price 
+        : historicalPrices[0].price;
+    }
 
     // Calculate stats
     const prices = historicalPrices.map((h) => h.price);

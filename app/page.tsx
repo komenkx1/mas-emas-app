@@ -78,11 +78,13 @@ export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [currentGoal, setCurrentGoal] = useState<UserGoal | null>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>("analisis");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (goal: UserGoal) => {
     setIsLoading(true);
     setCurrentGoal(goal);
     setActiveTab("analisis");
+    setErrorMessage(null);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -102,7 +104,7 @@ export default function Home() {
       setResult(data);
     } catch (error) {
       console.error("Error analyzing goal:", error);
-      alert("Terjadi kesalahan saat menganalisis. Silakan coba lagi.");
+      setErrorMessage("Terjadi kesalahan saat menganalisis. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
@@ -130,6 +132,26 @@ export default function Home() {
             Kalkulator investasi emas cerdas dengan analisis AI untuk membantu Anda mencapai tujuan finansial
           </p>
         </div>
+
+        {/* Error Banner */}
+        {errorMessage && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-500/10 via-white/[0.03] to-red-500/5 p-4 backdrop-blur-sm shadow-lg shadow-red-900/10">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 text-lg">⚠️</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-300">{errorMessage}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                aria-label="Tutup pesan error"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Form Section */}
         <div className="mb-8 md:mb-12">
