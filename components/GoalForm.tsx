@@ -261,7 +261,7 @@ export default function GoalForm({ onSubmit, isLoading }: GoalFormProps) {
         disabled={isLoading}
         className="gold-focus w-full py-4 rounded-xl bg-gradient-to-r from-gold-dark via-gold to-gold-light [background-size:200%_100%] font-semibold text-[#0A0A0F] shadow-lg shadow-gold/10 transition-all hover:-translate-y-0.5 hover:shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 active:scale-[0.99]"
       >
-        {isLoading ? "Menganalisis..." : "Analisis Sekarang"}
+        {isLoading ? "Menganalisis\u2026" : "Analisis Sekarang"}
       </button>
 
       <p className="text-xs text-gray-500 text-center">

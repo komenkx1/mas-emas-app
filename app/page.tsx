@@ -8,6 +8,7 @@ import ProgressTracker from "@/components/ProgressTracker";
 import DipAlertBanner from "@/components/DipAlertBanner";
 import DCASimulator from "@/components/DCASimulator";
 import ShareCard from "@/components/ShareCard";
+import AnalyzingOverlay from "@/components/AnalyzingOverlay";
 import type { UserGoal, AnalysisResult } from "@/lib/types";
 
 type ResultTab = "analisis" | "dca" | "share";
@@ -115,6 +116,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative">
+      <AnalyzingOverlay isOpen={isLoading} />
       <main className="container mx-auto max-w-7xl px-4 py-7 sm:px-6 md:py-12 relative z-10">
         {/* Hero Section */}
         <div className="text-center mb-10 md:mb-16">
